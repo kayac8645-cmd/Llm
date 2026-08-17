@@ -1,0 +1,6 @@
+{
+  "name": "LLM World",
+  "description": "Powerful local & online AI hub with categorized AI tools, simplified ChatGPT-style interface, GGUF offline execution, and internet fallback",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
