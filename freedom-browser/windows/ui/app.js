@@ -56,11 +56,13 @@ const DEFAULT_SETTINGS = {
   adblock: true, blockPopups: true, block3p: true, askDownload: false, downloadDir: '',
   blockListUrl: 'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts', blockListUpdated: 0,
   translateTemplate: 'https://translate.google.com/translate?sl=auto&tl={lang}&u={url}',
+  showBookmarksBar: false, showTopSites: true,
 };
 const S = {
   info: {}, settings: { ...DEFAULT_SETTINGS }, tabs: [], selected: 0, nextId: 1, closed: [],
   bookmarks: [], history: [], sites: {}, downloads: [], panel: null, menu: false, dialog: null,
   suggest: null, find: null, infobars: [], editing: false,
+  shortcuts: [], hiddenSites: [], win: { maximized: false, fullscreen: false }, backdrop: null, menuItems: [],
 };
 const ZOOM_STEPS = [25, 33, 50, 67, 75, 80, 90, 100, 110, 125, 150, 175, 200, 250, 300, 400, 500];
 const MAX_HISTORY = 20000;
@@ -69,7 +71,7 @@ const tab = id => S.tabs.find(t => t.id === id);
 const cur = () => tab(S.selected);
 function newTabState(id, priv, url = '') {
   return { id, private: !!priv, url, title: '', loading: false, progress: 0, canBack: false, canForward: false, favicon: '',
-    error: null, blocked: 0, zoom: 100, hasBrowser: false, pendingUrl: url };
+    error: null, blocked: 0, zoom: 100, hasBrowser: false, pendingUrl: url, pinned: false };
 }
 
 // ------------------------------------------------------------------------------------- settings
@@ -97,7 +99,7 @@ function applyTheme() {
 
 // ------------------------------------------------------------------------------------- session
 function saveSession() {
-  const tabs = S.tabs.filter(t => !t.private && (t.url || t.pendingUrl)).map(t => ({ url: t.url || t.pendingUrl, title: t.title }));
+  const tabs = S.tabs.filter(t => !t.private && (t.url || t.pendingUrl)).map(t => ({ url: t.url || t.pendingUrl, title: t.title, pinned: !!t.pinned }));
   const sel = S.tabs.filter(t => !t.private && (t.url || t.pendingUrl)).findIndex(t => t.id === S.selected);
   storage.set('session', { tabs, selected: sel });
 }
@@ -153,6 +155,20 @@ function reopenClosed() {
   const c = S.closed.shift();
   if (c) openTab({ url: c.url });
 }
+function duplicateTab(id) {
+  const t = tab(id);
+  if (t && (t.url || t.pendingUrl)) openTab({ url: t.url || t.pendingUrl, priv: t.private, after: id });
+}
+function setPinned(id, pinned) {
+  const t = tab(id);
+  if (!t) return;
+  t.pinned = pinned;
+  S.tabs.splice(S.tabs.indexOf(t), 1);
+  const lastPinned = S.tabs.reduce((acc, x, i) => (x.pinned ? i : acc), -1);
+  S.tabs.splice(pinned ? lastPinned + 1 : lastPinned + 1, 0, t);
+  render(); saveSession();
+}
+function closeTabs(ids) { for (const id of ids) closeTab(id); }
 function cycleTab(dir) {
   if (S.tabs.length < 2) return;
   const i = S.tabs.findIndex(t => t.id === S.selected);
@@ -241,9 +257,30 @@ function toggleBookmark() {
   if (!t || !t.url || t.error) return;
   const existing = S.bookmarks.find(b => b.url === t.url);
   if (existing) S.bookmarks = S.bookmarks.filter(b => b !== existing);
-  else S.bookmarks.push({ id: Date.now(), parentId: 0, title: t.title || core.displayUrl(t.url), url: t.url, created: Date.now() });
+  else S.bookmarks.push({ id: Date.now(), parentId: 0, title: t.title || core.displayUrl(t.url), url: t.url, created: Date.now(), pos: bmChildren(0).length });
   storage.set('bookmarks', S.bookmarks);
   render();
+}
+function bmChildren(parentId) {
+  return S.bookmarks.filter(b => (b.parentId || 0) === parentId)
+    .sort((a, b) => (a.pos ?? a.created ?? 0) - (b.pos ?? b.created ?? 0));
+}
+/** Moves bookmark |id| into |parentId| before |beforeId| (or to the end). Refuses folder cycles. */
+function moveBookmark(id, parentId, beforeId) {
+  const b = S.bookmarks.find(x => x.id === id);
+  if (!b || id === parentId) return false;
+  if (!b.url) {
+    const pairs = S.bookmarks.flatMap(x => [String(x.id), String(x.parentId || '')]);
+    if (core.bookmarkMoveCreatesCycle(String(id), String(parentId || ''), pairs)) return false;
+  }
+  b.parentId = parentId;
+  const siblings = bmChildren(parentId).filter(x => x.id !== id);
+  const at = beforeId != null ? siblings.findIndex(x => x.id === beforeId) : -1;
+  siblings.splice(at < 0 ? siblings.length : at, 0, b);
+  siblings.forEach((x, i) => { x.pos = i; });
+  storage.set('bookmarks', S.bookmarks);
+  render();
+  return true;
 }
 function deleteBookmark(id) {
   const ids = new Set([id]);
@@ -329,7 +366,9 @@ window.freedom = {
       case 'privateSessionEnded':
         S.downloads = S.downloads.filter(d => !d.private || d.state === 'progress');
         break;
-      case 'fullscreen': break;
+      case 'window': S.win = { maximized: e.maximized, fullscreen: e.fullscreen }; break;
+      case 'snapshot': snapWaiter?.(e.data); return;
+      case 'searchText': openTab({ url: core.searchUrl(S.settings.engine, e.text), priv: e.private, after: e.openerId }); break;
     }
     render();
   },
@@ -445,6 +484,10 @@ function shortcut(name) {
     case 'back': back(); break;
     case 'forward': if (t?.canForward) ipc('tab.forward', { id: t.id }); break;
     case 'home': goHome(); break;
+    case 'fullscreen': ipc('window.fullscreen', {}); break;
+    case 'exitFullscreen': ipc('window.fullscreen', { on: false }); break;
+    case 'toggleBookmarksBar': S.settings.showBookmarksBar = !S.settings.showBookmarksBar; saveSettings(); render(); break;
+    case 'clearData': showPanel('history'); S.panelState.clearOpen = true; render(); break;
   }
 }
 function focusAddress() {
@@ -460,13 +503,15 @@ document.addEventListener('keydown', e => {
     const map = { t: 'newTab', w: 'closeTab', l: 'focusAddress', f: 'find', d: 'bookmark', r: 'reload', p: 'print', j: 'downloads', h: 'history', s: 'savePdf', '+': 'zoomIn', '=': 'zoomIn', '-': 'zoomOut', '0': 'zoomReset' };
     if (e.shiftKey && k.toLowerCase() === 't') name = 'reopenTab';
     else if (e.shiftKey && k.toLowerCase() === 'n') name = 'newPrivateTab';
+    else if (e.shiftKey && k.toLowerCase() === 'b') name = 'toggleBookmarksBar';
+    else if (e.shiftKey && k === 'Delete') name = 'clearData';
     else if (k === 'Tab') name = e.shiftKey ? 'prevTab' : 'nextTab';
     else if (!e.shiftKey) name = map[k.toLowerCase()];
   } else if (e.altKey && !e.ctrlKey) {
     if (k === 'ArrowLeft') name = 'back'; else if (k === 'ArrowRight') name = 'forward'; else if (k === 'Home') name = 'home';
-  } else if (k === 'F5') name = 'reload'; else if (k === 'F6') name = 'focusAddress';
+  } else if (k === 'F5') name = 'reload'; else if (k === 'F6') name = 'focusAddress'; else if (k === 'F11') name = 'fullscreen';
   else if (k === 'Escape') {
-    if (S.dialog) S.dialog = null; else if (S.menu) S.menu = false; else if (S.suggest) { S.suggest = null; $('#address').blur(); }
+    if (S.dialog) S.dialog = null; else if (S.menu) S.menu = null; else if (S.win.fullscreen) { ipc('window.fullscreen', { on: false }); return; } else if (S.suggest) { S.suggest = null; $('#address').blur(); }
     else if (S.find) closeFind(); else if (S.panel) S.panel = null;
     render();
     return;
@@ -515,8 +560,10 @@ function wantsFullUi() {
 function render() {
   renderTabs();
   renderNav();
+  renderBookmarksBar();
   renderBars();
   const full = wantsFullUi();
+  if (!full || !(S.menu || S.dialog || S.suggest)) S.backdrop = null;
   const overlay = $('#overlay');
   overlay.classList.toggle('hidden', !full);
   const toolbarH = Math.ceil($('#toolbar').getBoundingClientRect().height);
@@ -534,15 +581,140 @@ function ipcTitle(title) { if (title !== lastTitle) { lastTitle = title; ipc('ti
 
 function renderTabs() {
   const strip = $('#tabstrip');
+  if (tabDrag?.active) return; // DOM is being reordered by the drag handler
   strip.innerHTML = S.tabs.map(t => {
     const fav = t.loading && t.hasBrowser ? '<span class="spin"></span>'
       : t.favicon ? `<img class="fav" src="${esc(t.favicon)}" alt="">`
       : svg(t.private ? 'eye' : 'globe', 'style="width:16px;height:16px"');
     const title = t.title || (t.url ? core.displayUrl(t.url) : (t.private ? T.privateTitle : T.startPage));
-    return `<div class="tab${t.id === S.selected ? ' active' : ''}${t.private ? ' private' : ''}" role="tab" data-id="${t.id}" title="${esc(title)}" aria-selected="${t.id === S.selected}">
-      ${fav}<span class="title">${esc(title)}</span>
-      <button class="close" data-close="${t.id}" title="${esc(T.closeTab)}">${svg('x', 'style="width:14px;height:14px"')}</button></div>`;
+    return `<div class="tab${t.id === S.selected ? ' active' : ''}${t.private ? ' private' : ''}${t.pinned ? ' pinned' : ''}" role="tab" data-id="${t.id}" title="${esc(title)}" aria-selected="${t.id === S.selected}">
+      <span class="fav-wrap">${fav}</span><span class="title">${esc(title)}</span>
+      <button class="close" data-close="${t.id}" title="${esc(T.closeTab)} (Ctrl+W)">${svg('x', 'style="width:12px;height:12px"')}</button></div>`;
   }).join('') + `<button id="newtab" title="${esc(T.newTab)} (Ctrl+T)">${svg('x', 'style="transform:rotate(45deg)"')}</button>`;
+  const max = $('#wcMaxIcon');
+  max.innerHTML = S.win.maximized ? '<rect x="1" y="3" width="6" height="6"/><path d="M3 3V1h6v6H7"/>' : '<rect x="1" y="1" width="8" height="8"/>';
+  $('#wcMax').dataset.tip = S.win.maximized ? 'restore' : 'maximize';
+}
+
+// ---------------------------------------------------------------- tab drag & drop reordering
+let tabDrag = null;
+document.addEventListener('pointerdown', e => {
+  const el = e.target.closest('.tab');
+  if (!el || e.button !== 0 || e.target.closest('.close')) return;
+  const id = Number(el.dataset.id);
+  if (id !== S.selected) selectTab(id);
+  tabDrag = { id, startX: e.clientX, active: false, pointer: e.pointerId };
+});
+document.addEventListener('pointermove', e => {
+  if (!tabDrag) return;
+  if (!tabDrag.active && Math.abs(e.clientX - tabDrag.startX) < 6) return;
+  tabDrag.active = true;
+  const t = tab(tabDrag.id);
+  const els = [...document.querySelectorAll('#tabstrip .tab')];
+  const me = els.find(x => Number(x.dataset.id) === tabDrag.id);
+  me?.classList.add('dragging');
+  // New index = number of same-group tabs whose centre is left of the pointer.
+  const group = S.tabs.filter(x => !!x.pinned === !!t.pinned && x !== t);
+  let index = 0;
+  for (const x of group) {
+    const r = els.find(n => Number(n.dataset.id) === x.id)?.getBoundingClientRect();
+    if (r && e.clientX > r.left + r.width / 2) index++;
+  }
+  const others = S.tabs.filter(x => x !== t);
+  const groupStart = t.pinned ? 0 : others.filter(x => x.pinned).length;
+  const target = groupStart + index;
+  if (S.tabs.indexOf(t) !== target) {
+    others.splice(target, 0, t);
+    S.tabs = others;
+    tabDrag.active = false; renderTabs(); tabDrag.active = true;
+    document.querySelector(`#tabstrip .tab[data-id="${t.id}"]`)?.classList.add('dragging');
+  }
+});
+document.addEventListener('pointerup', () => {
+  if (tabDrag?.active) { tabDrag = null; renderTabs(); saveSession(); } else tabDrag = null;
+});
+
+// ---------------------------------------------------------------- bookmarks bar
+function renderBookmarksBar() {
+  const bar = $('#bookmarksbar');
+  bar.classList.toggle('hidden', !S.settings.showBookmarksBar);
+  if (!S.settings.showBookmarksBar) return;
+  const items = bmChildren(0);
+  const html = items.length ? items.map(b => `<button class="bm" draggable="true" data-bm="${b.id}" title="${esc(b.url ? b.title + '\n' + b.url : b.title)}">
+      ${b.url ? `<span class="letter">${esc(letterOf(b.url, b.title))}</span>` : svg('folder')}<span>${esc(b.title)}</span></button>`).join('')
+    : `<span class="bm-empty">${esc(T.bookmarksBarEmpty)}</span>`;
+  if (bar.dataset.html !== html) { bar.innerHTML = html; bar.dataset.html = html; }
+}
+function letterOf(url, title) {
+  const h = core.hostOf(url || '').replace(/^www\./, '');
+  return (h || title || '?').charAt(0);
+}
+let bmDragId = null;
+document.addEventListener('dragstart', e => {
+  const bm = e.target.closest?.('[data-bm]'); const tile = e.target.closest?.('[data-tile]');
+  if (bm) { bmDragId = Number(bm.dataset.bm); e.dataTransfer.effectAllowed = 'move'; }
+  if (tile) { tileDrag = tile.dataset.tile; e.dataTransfer.effectAllowed = 'move'; }
+});
+document.addEventListener('dragover', e => {
+  const bm = e.target.closest?.('[data-bm]'); const tile = e.target.closest?.('[data-tile]');
+  document.querySelectorAll('.drop-before,.drop-into').forEach(x => x.classList.remove('drop-before', 'drop-into'));
+  if (bm && bmDragId != null && Number(bm.dataset.bm) !== bmDragId) {
+    e.preventDefault();
+    const target = S.bookmarks.find(x => x.id === Number(bm.dataset.bm));
+    const r = bm.getBoundingClientRect();
+    const into = !target.url && e.clientX > r.left + r.width * .3 && e.clientX < r.right - r.width * .3;
+    bm.classList.add(into ? 'drop-into' : 'drop-before');
+  } else if (tile && tileDrag != null && tile.dataset.tile !== tileDrag) {
+    e.preventDefault();
+    tile.classList.add('drop-before');
+  }
+});
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const bm = e.target.closest?.('[data-bm]'); const tile = e.target.closest?.('[data-tile]');
+  if (bm && bmDragId != null) {
+    const targetId = Number(bm.dataset.bm);
+    if (bm.classList.contains('drop-into')) moveBookmark(bmDragId, targetId, null);
+    else moveBookmark(bmDragId, 0, targetId);
+  } else if (tile && tileDrag != null) {
+    const from = S.shortcuts.findIndex(x => String(x.id) === tileDrag);
+    const item = S.shortcuts.splice(from, 1)[0];
+    const to = S.shortcuts.findIndex(x => String(x.id) === tile.dataset.tile);
+    if (item) { S.shortcuts.splice(to < 0 ? S.shortcuts.length : to, 0, item); storage.set('shortcuts', S.shortcuts); }
+  }
+  document.querySelectorAll('.drop-before,.drop-into').forEach(x => x.classList.remove('drop-before', 'drop-into'));
+  bmDragId = null; tileDrag = null;
+  render();
+});
+document.addEventListener('dragend', () => { bmDragId = null; tileDrag = null; document.querySelectorAll('.drop-before,.drop-into').forEach(x => x.classList.remove('drop-before', 'drop-into')); });
+let tileDrag = null;
+
+// ---------------------------------------------------------------- menus over the page
+let snapWaiter = null;
+function snapshot(id) {
+  return new Promise(res => {
+    const timer = setTimeout(() => { snapWaiter = null; res(null); }, 700);
+    snapWaiter = d => { clearTimeout(timer); snapWaiter = null; res(d || null); };
+    ipc('tab.snapshot', { id });
+  });
+}
+/** Grabs an image of the visible page so menus and dialogs appear on top of it (the page itself is a native window). */
+async function ensureBackdrop() {
+  const t = cur();
+  const pageVisible = t?.hasBrowser && !t.error && (t.url || t.loading) && !S.panel;
+  if (!pageVisible || S.backdrop) return;
+  S.backdrop = await snapshot(t.id);
+}
+async function openMenu(kind, x, y, data = {}) {
+  S.suggest = null;
+  await ensureBackdrop();
+  S.menu = { kind, x, y, data };
+  render();
+}
+async function openDialog(dialog) {
+  await ensureBackdrop();
+  S.dialog = dialog;
+  render();
 }
 
 function renderNav() {
@@ -565,8 +737,10 @@ function renderNav() {
   $('#star').disabled = !t?.url || !!t?.error;
   $('#progress > div').style.width = t?.loading && t?.hasBrowser ? Math.max(5, t.progress) + '%' : '0';
   const active = S.downloads.filter(d => d.state === 'progress').length;
-  $('#dlBadge').textContent = active;
-  $('#dlBadge').classList.toggle('hidden', !active);
+  $('#dlRing').classList.toggle('hidden', !active);
+  const zb = $('#zoomBadge');
+  zb.textContent = t && t.zoom !== 100 ? t.zoom + '%' : '';
+  zb.classList.toggle('hidden', !t || t.zoom === 100);
   for (const el of document.querySelectorAll('[data-tip]')) el.title = T[el.dataset.tip] || '';
 }
 
@@ -598,8 +772,9 @@ function renderOverlay() {
   if (S.panel) html = renderPanel(S.panel);
   else if (t?.error) html = renderError(t);
   else if (!pageBehind) html = renderStart(t);
-  if (S.suggest) html += renderSuggest();
-  if (S.menu) html += `<div class="scrim" data-act="closeMenu"></div>` + renderMenu();
+  else if (S.backdrop) html = `<div class="backdrop" style="background-image:url('${S.backdrop}')"></div>`;
+  if (S.suggest) html += `<div class="scrim" style="background:transparent" data-act="closeSuggest"></div>` + renderSuggest();
+  if (S.menu) html += `<div class="scrim" style="background:transparent" data-act="closeMenu"></div>` + renderMenu();
   if (S.dialog) html += `<div class="scrim" data-act="closeDialog"></div>` + renderDialog();
   // Avoid resetting focus/scroll when nothing changed.
   if (o.dataset.html === html) return;
@@ -612,12 +787,34 @@ function renderOverlay() {
   if (focusedId && o.querySelector('#' + focusedId)) { const el = document.getElementById(focusedId); el.focus(); try { el.setSelectionRange(sel, sel); } catch {} }
 }
 
+function flatVisits(limit = 3000) {
+  const out = [];
+  for (let i = Math.max(0, S.history.length - limit); i < S.history.length; i++) { const h = S.history[i]; out.push(h.url, h.title || '', String(h.t)); }
+  return out;
+}
+function flatBookmarks() { return S.bookmarks.filter(b => b.url).flatMap(b => [b.title, b.url]); }
+
 function renderStart(t) {
   const priv = t?.private;
+  const tile = (attrs, url, title, extra) => `<div class="tile" ${attrs}><div class="ico"><span class="letter">${esc(letterOf(url, title))}</span></div><span class="label">${esc(title)}</span>${extra}</div>`;
+  let tiles = '';
+  if (!priv) {
+    const sc = S.shortcuts.map(x => tile(`draggable="true" data-tile="${esc(x.id)}" data-open="${esc(x.url)}" title="${esc(x.url)}"`, x.url, x.title,
+      `<button class="x" data-scdel="${esc(x.id)}" title="${esc(T.remove)}">✕</button>`)).join('');
+    const add = `<button class="tile" data-act="addShortcut"><div class="ico">${svg('x', 'style="transform:rotate(45deg)"')}</div><span class="label">${esc(T.addShortcut)}</span></button>`;
+    tiles += `<div class="tiles">${sc}${add}</div>`;
+    if (S.settings.showTopSites) {
+      const exclude = [...S.hiddenSites, ...S.shortcuts.map(x => core.siteKey(x.url))];
+      const top = core.topSites(flatVisits(), core.now(), 8, exclude);
+      if (top.length) tiles += `<div class="tiles-title">${esc(T.recentSites)}</div><div class="tiles">${top.map(([url, title, host]) =>
+        tile(`data-open="${esc(url)}" title="${esc(url)}"`, url, title || host, `<button class="x" data-hide="${esc(host)}" title="${esc(T.hideSite)}">✕</button>`)).join('')}</div>`;
+    }
+  }
   return `<div class="page start">
-    <div class="brand">${priv ? svg('eye', 'style="width:40px;height:40px;color:var(--private)"') : `<img src="logo.png" alt="" width="48" height="48">`}
+    <div class="brand">${priv ? svg('eye', 'style="width:48px;height:48px;color:var(--private)"') : `<img src="logo.png" alt="">`}
       <span class="${priv ? 'private-title' : ''}">${esc(priv ? T.privateTitle : T.appName)}</span></div>
     <form class="search" data-form="start">${svg('search')}<input id="startInput" type="text" placeholder="${esc(T.startHint)}" spellcheck="false" autocomplete="off"></form>
+    ${tiles}
     <div class="chips">
       <button class="chip" data-panel="downloads">${svg('dl')} ${esc(T.downloads)}</button>
       <button class="chip" data-panel="bookmarks">${svg('star')} ${esc(T.bookmarks)}</button>
@@ -647,35 +844,134 @@ function renderSuggest() {
   const items = [];
   if (q) {
     const [kind, url] = core.resolveInput(q, S.settings.engine);
-    items.push({ icon: kind === 'navigate' ? 'globe' : 'search', title: q, sub: kind === 'navigate' ? core.displayUrl(url) : S.settings.engine, url });
-    const seen = new Set([url]);
-    const add = (title, u, icon) => { if (!seen.has(u) && items.length < 9) { seen.add(u); items.push({ icon, title: title || core.displayUrl(u), sub: core.displayUrl(u), url: u }); } };
-    for (const b of S.bookmarks) if (b.url && core.textMatches(q, b.title, b.url)) add(b.title, b.url, 'star');
-    for (let i = S.history.length - 1; i >= 0 && items.length < 9; i--) { const h = S.history[i]; if (core.textMatches(q, h.title, h.url)) add(h.title, h.url, 'clock'); }
+    const engineName = (core.searchEngines().find(e => e[0] === S.settings.engine) || [])[1] || '';
+    items.push({ icon: kind === 'navigate' ? 'globe' : 'search', title: q, sub: kind === 'navigate' ? core.displayUrl(url) : `${engineName} · ${T.search}`, url });
+    for (const [u, title, isBm] of core.suggestions(q, flatVisits(), flatBookmarks(), 7)) {
+      if (u !== url) items.push({ icon: isBm === '1' ? 'star' : 'clock', title: title || core.displayUrl(u), sub: core.displayUrl(u), url: u });
+    }
   }
   S.suggest.items = items;
   const sel = S.suggest.sel ?? 0;
-  return `<div class="suggest" role="listbox">${items.map((it, i) => `<div class="sg${i === sel ? ' sel' : ''}" data-sg="${i}" role="option">${svg(it.icon)}
-    <div style="min-width:0"><div class="t">${esc(it.title)}</div><div class="u">${esc(it.sub)}</div></div></div>`).join('')}</div>`;
+  const r = $('#omnibox').getBoundingClientRect();
+  const engines = q ? `<div class="engines">${esc(T.searchWith)} ${core.searchEngines().map(([id, name]) =>
+    `<button data-engine="${id}" class="${id === S.settings.engine ? 'on' : ''}">${esc(name)}</button>`).join('')}</div>` : '';
+  return `<div class="suggest" role="listbox" style="left:${Math.round(r.left)}px;width:${Math.round(r.width)}px">${items.map((it, i) => `<div class="sg${i === sel ? ' sel' : ''}" data-sg="${i}" role="option">${svg(it.icon)}
+    <div style="min-width:0"><div class="t">${esc(it.title)}</div><div class="u">${esc(it.sub)}</div></div></div>`).join('')}${engines}</div>`;
+}
+
+function menuItemsFor(m) {
+  const t = cur();
+  const page = t && t.hasBrowser && t.url && !t.error;
+  const I = (label, run, opts = {}) => ({ label, run, ...opts });
+  switch (m.kind) {
+    case 'main': return [
+      I(T.newTab, () => { openTab(); focusAddress(); }, { key: 'Ctrl+T' }),
+      I(T.newPrivateTab, () => { openTab({ priv: true }); focusAddress(); }, { key: 'Ctrl+Shift+N' }),
+      'sep',
+      I(T.history, () => showPanel('history'), { key: 'Ctrl+H' }),
+      I(T.downloads, () => showPanel('downloads'), { key: 'Ctrl+J' }),
+      I(T.bookmarks, () => showPanel('bookmarks')),
+      I(T.showBookmarksBar, () => shortcut('toggleBookmarksBar'), { key: 'Ctrl+Shift+B', check: S.settings.showBookmarksBar }),
+      'sep', { zoom: true }, 'sep',
+      I(T.print, () => ipc('tab.print', { id: t.id }), { key: 'Ctrl+P', disabled: !page }),
+      I(T.savePdf, () => ipc('tab.pdf', { id: t.id }), { key: 'Ctrl+S', disabled: !page }),
+      I(T.findInPage, () => openFind(), { key: 'Ctrl+F', disabled: !page }),
+      I(T.screenshot, () => ipc('tab.screenshot', { id: t.id }), { disabled: !page }),
+      I(T.copyLink, () => navigator.clipboard.writeText(t.url).then(() => infobar({ kind: 'info', timeout: 2500, html: esc(T.copied) })), { disabled: !page }),
+      I(T.translate, () => {
+        const url = S.settings.translateTemplate.replace('{lang}', encodeURIComponent((navigator.language || 'en').split('-')[0])).replace('{url}', encodeURIComponent(t.url));
+        const host = core.hostOf(url);
+        if (host) openDialog({ kind: 'translate', url, host });
+      }, { disabled: !page }),
+      'sep',
+      I(T.settings, () => showPanel('settings')),
+      I(T.aboutLumo, () => openDialog({ kind: 'about' })),
+      I(T.exit, () => ipc('window.close')),
+    ];
+    case 'profile': return [
+      { head: true },
+      I(T.newPrivateTab, () => { openTab({ priv: true }); focusAddress(); }, { key: 'Ctrl+Shift+N' }),
+      I(T.showBookmarksBar, () => shortcut('toggleBookmarksBar'), { check: S.settings.showBookmarksBar }),
+      I(T.clearData, () => shortcut('clearData'), { key: 'Ctrl+Shift+Del' }),
+      I(T.settings, () => showPanel('settings')),
+    ];
+    case 'tab': {
+      const x = tab(m.data.id);
+      if (!x) return [];
+      const idx = S.tabs.indexOf(x);
+      return [
+        I(T.newTabRight, () => openTab({ after: x.id })),
+        I(T.reload, () => { if (x.hasBrowser) ipc('tab.reload', { id: x.id }); }, { disabled: !x.hasBrowser }),
+        I(T.duplicate, () => duplicateTab(x.id), { disabled: !(x.url || x.pendingUrl) }),
+        I(x.pinned ? T.unpin : T.pin, () => setPinned(x.id, !x.pinned)),
+        I(T.bookmarkPage, () => { selectTab(x.id); toggleBookmark(); }, { disabled: !x.url }),
+        'sep',
+        I(T.closeTab, () => closeTab(x.id), { key: 'Ctrl+W' }),
+        I(T.closeOthers, () => closeTabs(S.tabs.filter(y => y !== x && !y.pinned).map(y => y.id)), { disabled: S.tabs.length < 2 }),
+        I(T.closeRight, () => closeTabs(S.tabs.slice(idx + 1).filter(y => !y.pinned).map(y => y.id)), { disabled: idx === S.tabs.length - 1 }),
+        'sep',
+        I(T.reopenTab, () => reopenClosed(), { key: 'Ctrl+Shift+T', disabled: !S.closed.length }),
+      ];
+    }
+    case 'bookmark': {
+      const b = S.bookmarks.find(x => x.id === m.data.id);
+      if (!b) return [];
+      const edit = I(T.edit, () => openDialog({ kind: 'bookmark', id: b.id, folder: !b.url, title: b.title, url: b.url || '', parentId: b.parentId || 0 }));
+      const del = I(T.delete, () => deleteBookmark(b.id));
+      if (!b.url) return [I(T.openAll, () => bmChildren(b.id).filter(c => c.url).forEach(c => openTab({ url: c.url, background: true }))), 'sep', edit, del];
+      return [
+        I(T.open, () => navigateOrOpen(b.url)),
+        I(T.openNewTab, () => openTab({ url: b.url, background: true })),
+        I(T.openPrivate, () => openTab({ url: b.url, priv: true })),
+        'sep', edit, del,
+      ];
+    }
+    case 'bar': return [
+      I(T.addPage, () => toggleBookmark(), { disabled: !page || isBookmarked(t?.url) }),
+      I(T.newFolder, () => openDialog({ kind: 'bookmark', folder: true, title: '', url: '', parentId: 0 })),
+      I(T.bookmarks, () => showPanel('bookmarks')),
+      'sep',
+      I(T.showBookmarksBar, () => shortcut('toggleBookmarksBar'), { check: S.settings.showBookmarksBar }),
+    ];
+    case 'folder': {
+      const kids = bmChildren(m.data.id);
+      const items = [];
+      if (m.data.parent != null) items.push(I('‹ ' + T.upLevel, () => openMenu('folder', m.x, m.y, { id: m.data.parent, parent: m.data.grand })), 'sep');
+      if (!kids.length) items.push(I(T.empty, () => {}, { disabled: true }));
+      for (const c of kids) items.push(c.url
+        ? I(c.title, () => navigateOrOpen(c.url), { letter: letterOf(c.url, c.title), bm: c.id })
+        : I(c.title + ' ›', () => openMenu('folder', m.x, m.y, { id: c.id, parent: m.data.id, grand: m.data.parent }), { folder: true, bm: c.id }));
+      return items;
+    }
+  }
+  return [];
+}
+function navigateOrOpen(url) {
+  const t = cur();
+  if (t && !t.private && !t.url && !t.hasBrowser) navigate(t, url); else if (t) navigate(t, url); else openTab({ url });
 }
 
 function renderMenu() {
+  const m = S.menu;
+  const items = menuItemsFor(m);
+  S.menuItems = items;
   const t = cur();
   const page = t && t.hasBrowser && t.url && !t.error;
-  const mi = (act, label, key = '', dis = false) => `<button class="mi" data-act="${act}" ${dis ? 'disabled' : ''}>${esc(label)}<span class="k">${key}</span></button>`;
-  return `<div class="menu" role="menu">
-    ${mi('newTab', T.newTab, 'Ctrl+T')}${mi('newPrivate', T.newPrivateTab, 'Ctrl+Shift+N')}${mi('reopen', T.reopenTab, 'Ctrl+Shift+T', !S.closed.length)}
-    <div class="sep"></div>
-    ${mi('p:bookmarks', T.bookmarks)}${mi('p:history', T.history, 'Ctrl+H')}${mi('p:downloads', T.downloads, 'Ctrl+J')}
-    <div class="sep"></div>
-    <div class="zoomrow"><span class="lab">${esc(T.zoom)}</span>
-      <button class="ib" data-act="zoomOut" ${page ? '' : 'disabled'}>−</button><span style="width:48px;text-align:center">${t?.zoom || 100}%</span>
-      <button class="ib" data-act="zoomIn" ${page ? '' : 'disabled'}>+</button></div>
-    ${mi('find', T.findInPage, 'Ctrl+F', !page)}${mi('print', T.print, 'Ctrl+P', !page)}${mi('pdf', T.savePdf, 'Ctrl+S', !page)}
-    ${mi('screenshot', T.screenshot, '', !page)}${mi('copyLink', T.copyLink, '', !page)}${mi('translate', T.translate, '', !page)}
-    <div class="sep"></div>
-    ${mi('p:settings', T.settings)}
-  </div>`;
+  const width = 300;
+  const right = m.x == null;
+  const left = right ? null : Math.max(8, Math.min(m.x, window.innerWidth - width - 8));
+  const pos = right ? 'right:8px;top:4px' : `left:${left}px;top:${Math.max(4, m.y)}px`;
+  const html = items.map((it, i) => {
+    if (it === 'sep') return '<div class="sep"></div>';
+    if (it.zoom) return `<div class="zoomrow"><span class="lab">${esc(T.zoom)}</span>
+      <button class="ib" data-act="zoomOut" ${page ? '' : 'disabled'}>−</button><span style="width:52px;text-align:center">${t?.zoom || 100}%</span>
+      <button class="ib" data-act="zoomIn" ${page ? '' : 'disabled'}>+</button>
+      <button class="ib" data-act="fullscreen" title="${esc(T.fullscreen)} (F11)"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>`;
+    if (it.head) return `<div class="head"><img src="logo.png" alt=""><div><div>${esc(T.profileName)}</div><div class="small muted">${esc(T.localProfile)}</div></div></div><div class="sep"></div>`;
+    const lead = it.check != null ? `<span class="chk">${it.check ? '✓' : ''}</span>` : it.letter ? `<span class="letter" style="display:grid;place-items:center;width:16px;height:16px;border-radius:4px;background:var(--accent-soft);color:var(--accent);font-size:10px;font-weight:700;text-transform:uppercase">${esc(it.letter)}</span>` : it.folder ? svg('folder') : '';
+    return `<button class="mi" data-mi="${i}" ${it.disabled ? 'disabled' : ''}>${lead}${esc(it.label)}<span class="k">${esc(it.key || '')}</span></button>`;
+  }).join('');
+  return `<div class="menu" role="menu" style="${pos};width:${width}px">${html}</div>`;
 }
 
 function renderDialog() {
@@ -702,6 +998,20 @@ function renderDialog() {
       <div class="actions"><button class="btn" data-act="closeDialog">${esc(T.cancel)}</button><button class="btn primary" data-act="translateGo">${esc(T.translateGo)}</button></div></div>`;
   }
   if (d.kind === 'siteinfo') return renderSiteInfo();
+  if (d.kind === 'about') {
+    const i = S.info;
+    return `<div class="dialog about"><img src="logo.png" alt=""><h3>Lumo Browser</h3>
+      <p class="muted small">${esc(T.version(i.version || '', i.cef || '', i.chromium || ''))}</p>
+      <p class="small">${esc(T.noTelemetry)}</p><p class="small muted">${esc(T.compatNote)}</p>
+      <div class="actions" style="justify-content:center"><button class="btn" data-act="openLicenses">${esc(T.licenses)}</button><button class="btn primary" data-act="closeDialog">OK</button></div></div>`;
+  }
+  if (d.kind === 'shortcut') {
+    return `<div class="dialog"><h3>${esc(T.addShortcut)}</h3><form data-form="shortcut">
+      <label>${esc(T.title)}</label><input class="field" id="scTitle" value="${esc(d.title || '')}">
+      <label>${esc(T.url)}</label><input class="field" id="scUrl" value="${esc(d.url || '')}" placeholder="example.com">
+      ${d.err ? `<div class="err">${esc(d.err)}</div>` : ''}
+      <div class="actions"><button type="button" class="btn" data-act="closeDialog">${esc(T.cancel)}</button><button class="btn primary">${esc(T.save)}</button></div></form></div>`;
+  }
   return '';
 }
 
@@ -737,7 +1047,7 @@ function renderPanel(name) {
     const q = ps.bmQuery || '';
     const folder = ps.folder || 0;
     const list = q ? S.bookmarks.filter(b => b.url && core.textMatches(q, b.title, b.url))
-      : S.bookmarks.filter(b => (b.parentId || 0) === folder).sort((a, b) => (!!a.url - !!b.url) || a.title.localeCompare(b.title));
+      : bmChildren(folder);
     const crumbs = []; let f = folder;
     while (f) { const n = S.bookmarks.find(b => b.id === f); if (!n) break; crumbs.unshift(n); f = n.parentId || 0; }
     return `<div class="page"><h1>${esc(T.bookmarks)}</h1>
@@ -820,6 +1130,8 @@ function renderSettings() {
     <div class="set"><div class="lbl">${esc(T.home)}</div><select class="field" data-select="homeMode">${opt('start', T.homeStart, s.homeMode)}${opt('custom', T.homeCustom, s.homeMode)}</select></div>
     ${s.homeMode === 'custom' ? `<div class="set"><div class="lbl">${esc(T.url)}</div><input class="field grow" data-text="homeUrl" value="${esc(s.homeUrl)}" placeholder="https://"></div>` : ''}
     <div class="set"><div class="lbl">${esc(T.restoreTabs)}</div>${sw('restoreTabs', s.restoreTabs)}</div>
+    <div class="set"><div class="lbl">${esc(T.showBookmarksBar)}</div>${sw('showBookmarksBar', s.showBookmarksBar)}</div>
+    <div class="set"><div class="lbl">${esc(T.showTopSites)}</div>${sw('showTopSites', s.showTopSites)}</div>
     <h2>${esc(T.sAppearance)}</h2>
     <div class="set"><div class="lbl">${esc(T.theme)}</div><select class="field" data-select="theme">${opt('dark', T.themeDark, s.theme)}${opt('light', T.themeLight, s.theme)}${opt('system', T.themeSystem, s.theme)}</select></div>
     <h2>${esc(T.sDownloads)}</h2>
@@ -897,45 +1209,31 @@ function saveBookmarkDialog() {
     if (core.bookmarkMoveCreatesCycle(String(d.id), String(parentId || ''), pairs)) { d.err = T.cycleError; return render(); }
   }
   if (d.id) Object.assign(S.bookmarks.find(b => b.id === d.id), { title, url, parentId });
-  else S.bookmarks.push({ id: Date.now(), parentId, title, url, created: Date.now() });
+  else S.bookmarks.push({ id: Date.now(), parentId, title, url, created: Date.now(), pos: bmChildren(parentId).length });
   storage.set('bookmarks', S.bookmarks);
   S.dialog = null;
   render();
 }
 
-function menuAction(act) {
-  const t = cur();
-  S.menu = false;
-  if (act.startsWith('p:')) return showPanel(act.slice(2));
-  switch (act) {
-    case 'newTab': openTab(); focusAddress(); break;
-    case 'newPrivate': openTab({ priv: true }); focusAddress(); break;
-    case 'reopen': reopenClosed(); break;
-    case 'zoomIn': S.menu = true; zoomStep(1); break;
-    case 'zoomOut': S.menu = true; zoomStep(-1); break;
-    case 'find': openFind(); break;
-    case 'print': ipc('tab.print', { id: t.id }); break;
-    case 'pdf': ipc('tab.pdf', { id: t.id }); break;
-    case 'screenshot': ipc('tab.screenshot', { id: t.id }); break;
-    case 'copyLink': navigator.clipboard.writeText(t.url).then(() => infobar({ kind: 'info', timeout: 2500, html: esc(T.copied) })); break;
-    case 'translate': {
-      const url = S.settings.translateTemplate.replace('{lang}', encodeURIComponent((navigator.language || 'en').split('-')[0])).replace('{url}', encodeURIComponent(t.url));
-      const host = core.hostOf(url);
-      if (host) S.dialog = { kind: 'translate', url, host };
-      break;
-    }
-  }
-  render();
-}
-
 // --------------------------------------------------------------------------------- DOM events
 document.addEventListener('click', e => {
-  const el = e.target.closest('[data-id],[data-close],[data-act],[data-panel],[data-bar],[data-open],[data-folder],[data-edit],[data-del],[data-hdel],[data-dl],[data-sg],[data-perm],[data-siteinfo],[data-sitereset],#newtab');
+  const el = e.target.closest('[data-id],[data-close],[data-act],[data-panel],[data-bar],[data-open],[data-folder],[data-edit],[data-del],[data-hdel],[data-dl],[data-sg],[data-perm],[data-siteinfo],[data-sitereset],[data-mi],[data-bm],[data-engine],[data-scdel],[data-hide],#newtab');
   if (!el) return;
   const d = el.dataset;
+  if (d.mi != null) { const it = S.menuItems[Number(d.mi)]; S.menu = null; render(); it?.run?.(); return; }
+  if (d.scdel) { e.stopPropagation(); S.shortcuts = S.shortcuts.filter(x => String(x.id) !== d.scdel); storage.set('shortcuts', S.shortcuts); return render(); }
+  if (d.hide) { e.stopPropagation(); S.hiddenSites.push(d.hide); storage.set('hidden-sites', S.hiddenSites); return render(); }
+  if (d.engine) { const q = S.suggest?.text || ''; S.suggest = null; S.editing = false; $('#address').blur(); navigate(cur(), core.searchUrl(d.engine, q)); return; }
+  if (d.bm) {
+    const b = S.bookmarks.find(x => x.id === Number(d.bm));
+    if (!b) return;
+    if (b.url) { if (e.ctrlKey) openTab({ url: b.url, background: true }); else navigateOrOpen(b.url); }
+    else { const r = el.getBoundingClientRect(); openMenu('folder', r.left, 4, { id: b.id }); }
+    return;
+  }
   if (d.close) { e.stopPropagation(); return closeTab(Number(d.close)); }
   if (el.id === 'newtab') { openTab(); return focusAddress(); }
-  if (d.id && el.classList.contains('tab')) return selectTab(Number(d.id));
+  if (d.id && el.classList.contains('tab')) return; // selection happens on pointerdown (drag support)
   if (d.bar) {
     const bar = S.infobars.find(b => b.key === d.bar);
     if (!bar) return;
@@ -982,7 +1280,13 @@ document.addEventListener('click', e => {
       navigator.clipboard.writeText(core.errorDetails(er.kind, er.code, er.text || '', er.url || t.url, S.info.version || '')).then(() => infobar({ kind: 'info', timeout: 2500, html: esc(T.copied) }));
       return;
     }
-    case 'closeMenu': S.menu = false; return render();
+    case 'closeMenu': S.menu = null; return render();
+    case 'closeSuggest': S.suggest = null; $('#address').blur(); return render();
+    case 'zoomIn': zoomStep(1); return render();
+    case 'zoomOut': zoomStep(-1); return render();
+    case 'fullscreen': S.menu = null; render(); return shortcut('fullscreen');
+    case 'addShortcut': S.dialog = { kind: 'shortcut' }; return render();
+    case 'openLicenses': S.dialog = null; return showPanel('settings');
     case 'closeDialog': S.dialog = null; return render();
     case 'openAnyway': ipc('download.open', { path: S.dialog.download.path }); S.dialog = null; return render();
     case 'translateGo': { const url = S.dialog.url; S.dialog = null; openTab({ url, priv: cur()?.private, after: S.selected }); return; }
@@ -997,8 +1301,6 @@ document.addEventListener('click', e => {
     case 'updateList': return updateBlockList().then(render);
     case 'removeList': return ipc('blocklist.save', { text: '' }).then(r => { S.info.blocklistSize = r.size; S.settings.blockListUpdated = 0; saveSettings(); render(); });
   }
-  if (d.act && el.classList.contains('mi')) return menuAction(d.act);
-  if (d.act && el.closest('.menu')) return menuAction(d.act);
 });
 document.addEventListener('change', e => {
   const el = e.target;
@@ -1026,13 +1328,34 @@ document.addEventListener('submit', e => {
   const f = e.target.dataset.form;
   if (f === 'start') submit($('#startInput').value);
   if (f === 'bookmark') saveBookmarkDialog();
+  if (f === 'shortcut') {
+    const url = core.validateBookmarkUrl($('#scUrl').value);
+    if (!url) { S.dialog.err = T.urlError; return render(); }
+    const title = $('#scTitle').value.trim() || core.displayUrl(url);
+    S.shortcuts.push({ id: String(Date.now()), title, url });
+    storage.set('shortcuts', S.shortcuts);
+    S.dialog = null; render();
+  }
 });
 
 // address bar
 const address = $('#address');
 address.addEventListener('focus', () => { const t = cur(); S.editing = true; address.value = t?.url || ''; address.select(); });
 address.addEventListener('blur', () => setTimeout(() => { S.editing = false; if (S.suggest) { S.suggest = null; render(); } else renderNav(); }, 150));
-address.addEventListener('input', () => { S.suggest = { text: address.value, sel: 0 }; render(); });
+address.addEventListener('input', e => {
+  let typed = address.value;
+  // Inline completion (like Chrome): only while typing forward at the end of the text.
+  if (e.inputType?.startsWith('insert') && address.selectionStart === typed.length) {
+    const completion = core.inlineCompletion(typed, flatVisits(), flatBookmarks());
+    if (completion && completion.toLowerCase().startsWith(typed.toLowerCase()) && completion.length > typed.length) {
+      address.value = typed + completion.slice(typed.length);
+      address.setSelectionRange(typed.length, address.value.length);
+    }
+  }
+  const first = !S.suggest;
+  S.suggest = { text: typed, sel: 0 };
+  if (first) ensureBackdrop().then(render); else render();
+});
 address.addEventListener('keydown', e => {
   if (e.key === 'Enter') {
     const sel = S.suggest?.sel ?? 0;
@@ -1055,13 +1378,30 @@ $('#reload').onclick = reload;
 $('#home').onclick = goHome;
 $('#star').onclick = toggleBookmark;
 $('#downloadsBtn').onclick = () => showPanel(S.panel === 'downloads' ? null : 'downloads');
-$('#menuBtn').onclick = () => { S.menu = !S.menu; render(); };
-$('#security').onclick = () => { S.dialog = { kind: 'siteinfo' }; render(); };
-$('#shield').onclick = () => { S.dialog = { kind: 'siteinfo' }; render(); };
+$('#menuBtn').onclick = () => { if (S.menu) { S.menu = null; render(); } else openMenu('main', null, 4); };
+$('#profileBtn').onclick = () => { const r = $('#profileBtn').getBoundingClientRect(); openMenu('profile', r.right - 300, 4); };
+$('#security').onclick = () => openDialog({ kind: 'siteinfo' });
+$('#shield').onclick = () => openDialog({ kind: 'siteinfo' });
 $('#findInput').addEventListener('keydown', e => { if (e.key === 'Enter') findGo(!e.shiftKey, true); });
 $('#findPrev').onclick = () => findGo(false, true);
 $('#findNext').onclick = () => findGo(true, true);
 $('#findClose').onclick = () => closeFind();
+document.addEventListener('contextmenu', e => {
+  const tabEl = e.target.closest('.tab'); const bm = e.target.closest('[data-bm]'); const bar = e.target.closest('#bookmarksbar');
+  const editable = e.target.closest('input, textarea');
+  if (editable) return; // native cut/copy/paste menu
+  e.preventDefault();
+  if (tabEl) openMenu('tab', e.clientX, 4, { id: Number(tabEl.dataset.id) });
+  else if (bm) openMenu('bookmark', e.clientX, 4, { id: Number(bm.dataset.bm) });
+  else if (bar) openMenu('bar', e.clientX, 4);
+});
+// Window: drag the empty title area, double-click to maximize, caption buttons.
+$('#dragspace').addEventListener('pointerdown', e => { if (e.button === 0 && e.detail === 1) ipc('window.drag'); });
+$('#dragspace').addEventListener('dblclick', () => ipc('window.maximize'));
+$('#tabstrip').addEventListener('dblclick', e => { if (e.target === $('#tabstrip')) ipc('window.maximize'); });
+$('#wcMin').onclick = () => ipc('window.minimize');
+$('#wcMax').onclick = () => ipc('window.maximize');
+$('#wcClose').onclick = () => ipc('window.close');
 // Broken favicons are removed (inline handlers are forbidden by the UI's CSP).
 document.addEventListener('error', e => { if (e.target?.classList?.contains('fav')) e.target.remove(); }, true);
 document.addEventListener('auxclick', e => { const el = e.target.closest('.tab'); if (el && e.button === 1) closeTab(Number(el.dataset.id)); });
@@ -1074,15 +1414,17 @@ window.addEventListener('resize', () => { lastLayout = ''; render(); });
   S.info = await ipc('init');
   S.settings = { ...DEFAULT_SETTINGS, ...(await storage.get('settings', {})) };
   applyTheme();
-  [S.bookmarks, S.history, S.sites, S.downloads] = await Promise.all([
+  [S.bookmarks, S.history, S.sites, S.downloads, S.shortcuts, S.hiddenSites] = await Promise.all([
     storage.get('bookmarks', []), storage.get('history', []), storage.get('sites', {}), storage.get('downloads', []),
+    storage.get('shortcuts', []), storage.get('hidden-sites', []),
   ]);
+  ipc('window.state').then(r => { if (r.ok) { S.win = { maximized: r.maximized, fullscreen: r.fullscreen }; render(); } });
   // Downloads that were running when the app closed cannot be continued by CEF after a restart.
   for (const d of S.downloads) if (d.state === 'progress' || d.state === 'paused' || d.state === 'waiting') d.state = 'interrupted';
   pushConfig();
   const session = S.settings.restoreTabs ? await storage.get('session', null) : null;
   if (session?.tabs?.length) {
-    for (const st of session.tabs) { const t = newTabState(S.nextId++, false, st.url); t.title = st.title || ''; S.tabs.push(t); }
+    for (const st of session.tabs) { const t = newTabState(S.nextId++, false, st.url); t.title = st.title || ''; t.pinned = !!st.pinned; S.tabs.push(t); }
     selectTab(S.tabs[Math.max(0, Math.min(session.selected, S.tabs.length - 1))].id);
   } else {
     openTab();

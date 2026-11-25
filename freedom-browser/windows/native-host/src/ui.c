@@ -383,6 +383,26 @@ static char* run_command(const char* body) {
       CEF_RELEASE(host);
     }
     sb_append(&out, "{\"ok\":true}");
+  } else if (!strcmp(cmd, "window.minimize")) {
+    ShowWindow(g.main_hwnd, SW_MINIMIZE);
+    sb_append(&out, "{\"ok\":true}");
+  } else if (!strcmp(cmd, "window.maximize")) {
+    ShowWindow(g.main_hwnd, IsZoomed(g.main_hwnd) ? SW_RESTORE : SW_MAXIMIZE);
+    sb_append(&out, "{\"ok\":true}");
+  } else if (!strcmp(cmd, "window.close")) {
+    PostMessageW(g.main_hwnd, WM_CLOSE, 0, 0);
+    sb_append(&out, "{\"ok\":true}");
+  } else if (!strcmp(cmd, "window.drag")) {
+    window_begin_drag();
+    sb_append(&out, "{\"ok\":true}");
+  } else if (!strcmp(cmd, "window.fullscreen")) {
+    set_window_fullscreen(dict_bool(d, "on", !g.window_fullscreen));
+    sb_append(&out, "{\"ok\":true}");
+  } else if (!strcmp(cmd, "window.state")) {
+    sb_printf(&out, "{\"ok\":true,\"maximized\":%s,\"fullscreen\":%s}", IsZoomed(g.main_hwnd) ? "true" : "false", g.window_fullscreen ? "true" : "false");
+  } else if (!strcmp(cmd, "tab.snapshot")) {
+    browser_snapshot(id);
+    sb_append(&out, "{\"ok\":true}");
   } else if (!strcmp(cmd, "title")) {
     char* t = dict_str(d, "title");
     wchar_t* w = utf8_to_wide(t);

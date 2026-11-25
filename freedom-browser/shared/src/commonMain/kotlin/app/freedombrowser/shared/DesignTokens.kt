@@ -9,6 +9,8 @@ object DesignTokens {
     data class Palette(
         val background: Long,
         val surface: Long,
+        /** Toolbar / tab strip background. */
+        val toolbar: Long,
         val surfaceRaised: Long,
         val surfaceHover: Long,
         val outline: Long,
@@ -25,12 +27,13 @@ object DesignTokens {
 
     val Dark = Palette(
         background = 0xFF0B0C0E,
-        surface = 0xFF15171A,
-        surfaceRaised = 0xFF1E2126,
-        surfaceHover = 0xFF272B31,
-        outline = 0xFF33383F,
-        textPrimary = 0xFFE8EAED,
-        textSecondary = 0xFF9AA0A8,
+        surface = 0xFF15171B,
+        toolbar = 0xFF191C21,
+        surfaceRaised = 0xFF1F2328,
+        surfaceHover = 0xFF292D33,
+        outline = 0xFF292D33,
+        textPrimary = 0xFFF5F5F5,
+        textSecondary = 0xFFA0A5AD,
         accent = 0xFF2EC4B6,
         onAccent = 0xFF04201D,
         accentSoft = 0xFF12393A,
@@ -43,6 +46,7 @@ object DesignTokens {
     val Light = Palette(
         background = 0xFFF6F7F8,
         surface = 0xFFFFFFFF,
+        toolbar = 0xFFECEEF1,
         surfaceRaised = 0xFFECEEF0,
         surfaceHover = 0xFFE2E5E8,
         outline = 0xFFCDD2D7,
@@ -79,7 +83,7 @@ object DesignTokens {
 
     fun toCss(palette: Palette): String = buildString {
         fun v(name: String, value: Long) = append("--$name:${hex(value)};")
-        v("bg", palette.background); v("surface", palette.surface); v("surface-raised", palette.surfaceRaised)
+        v("bg", palette.background); v("surface", palette.surface); v("toolbar", palette.toolbar); v("surface-raised", palette.surfaceRaised)
         v("surface-hover", palette.surfaceHover); v("outline", palette.outline); v("text", palette.textPrimary)
         v("text-2", palette.textSecondary); v("accent", palette.accent); v("on-accent", palette.onAccent)
         v("accent-soft", palette.accentSoft); v("danger", palette.danger); v("warning", palette.warning)

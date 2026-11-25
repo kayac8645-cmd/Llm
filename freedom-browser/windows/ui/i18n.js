@@ -1,5 +1,12 @@
 // UI strings (English + Turkish). The language follows the Windows display language.
 const EN = {
+  minimize: 'Minimize', maximize: 'Maximize', restore: 'Restore', closeWindow: 'Close', profile: 'Lumo profile',
+  profileName: 'Lumo', localProfile: 'Local profile · data stays on this computer', showBookmarksBar: 'Show bookmarks bar',
+  bookmarksBarEmpty: 'Bookmark pages with the star (Ctrl+D) to see them here', aboutLumo: 'About Lumo', exit: 'Exit',
+  newTabRight: 'New tab to the right', duplicate: 'Duplicate', pin: 'Pin', unpin: 'Unpin', closeOthers: 'Close other tabs',
+  closeRight: 'Close tabs to the right', openAll: 'Open all in new tabs', openNewTab: 'Open in new tab', openPrivate: 'Open in private tab',
+  addPage: 'Bookmark this page', empty: '(empty)', remove: 'Remove', addShortcut: 'Add shortcut', recentSites: 'Recently visited',
+  hideSite: "Don't show", fullscreen: 'Full screen', searchWith: 'Search with:', search: 'search', upLevel: 'Back', showTopSites: 'Show recently visited sites on the new tab page',
   appName: 'Lumo', back: 'Back (Alt+Left)', forward: 'Forward (Alt+Right)', reload: 'Reload (F5)', stop: 'Stop', home: 'Home',
   siteInfo: 'Site information', blockedTip: 'Blocked ads and trackers', bookmarkPage: 'Bookmark this page (Ctrl+D)', downloads: 'Downloads',
   menu: 'Menu', newTab: 'New tab', newPrivateTab: 'New private tab', closeTab: 'Close tab', addressHint: 'Search or type a web address',
@@ -70,11 +77,18 @@ const EN = {
   privacyText: 'Lumo Browser does not collect analytics or telemetry and has no accounts.\n\nStays on this computer: history, bookmarks, tabs, download list, site settings and preferences (in the profile folder).\n\nLeaves this computer only when you act: the pages you visit (to those sites), searches (to your chosen search engine), filter-list updates (to the list URL you configure) and translation (the page address, to the provider you configure).\n\nPrivate tabs use an in-memory profile; history is never written and their cookies, storage and cache are discarded when the last private tab closes. Downloaded files are kept.\n\nFreedom uses this computer\'s ordinary internet connection. It contains no VPN, proxy or tunnelling and cannot bypass network-administrator, school or site restrictions.',
   licensesText: 'Lumo Browser: MIT License.\nChromium Embedded Framework: BSD license. Chromium and its third-party components: see CREDITS.html in the program folder.\nOptional filter list StevenBlack/hosts: MIT, downloaded only when you choose to update it.',
   compatNote: 'This is a 32-bit (x86) build for 32-bit Windows 10. Windows 11 is 64-bit only; there, prefer a 64-bit browser.',
-  shortcuts: [['Ctrl+T', 'New tab'], ['Ctrl+Shift+N', 'New private tab'], ['Ctrl+W', 'Close tab'], ['Ctrl+Shift+T', 'Reopen closed tab'], ['Ctrl+Tab', 'Next tab'], ['Ctrl+L / F6', 'Focus address bar'], ['Ctrl+F', 'Find in page'], ['Ctrl+D', 'Bookmark page'], ['Ctrl+J', 'Downloads'], ['Ctrl+H', 'History'], ['Ctrl+P', 'Print'], ['Ctrl+S', 'Save as PDF'], ['Ctrl + / − / 0', 'Zoom'], ['Alt+Left / Alt+Right', 'Back / Forward'], ['F5', 'Reload']],
+  shortcuts: [['Ctrl+T', 'New tab'], ['Ctrl+Shift+N', 'New private tab'], ['Ctrl+W', 'Close tab'], ['Ctrl+Shift+T', 'Reopen closed tab'], ['Ctrl+Tab / Ctrl+Shift+Tab', 'Next / previous tab'], ['Ctrl+Shift+B', 'Bookmarks bar'], ['F11', 'Full screen'], ['Ctrl+L / F6', 'Focus address bar'], ['Ctrl+F', 'Find in page'], ['Ctrl+D', 'Bookmark page'], ['Ctrl+J', 'Downloads'], ['Ctrl+H', 'History'], ['Ctrl+P', 'Print'], ['Ctrl+S', 'Save as PDF'], ['Ctrl + / − / 0', 'Zoom'], ['Alt+Left / Alt+Right', 'Back / Forward'], ['F5', 'Reload']],
 };
 
 const TR = {
   ...EN,
+  minimize: 'Simge durumuna küçült', maximize: 'Ekranı kapla', restore: 'Önceki boyut', closeWindow: 'Kapat', profile: 'Lumo profili',
+  profileName: 'Lumo', localProfile: 'Yerel profil · veriler bu bilgisayarda kalır', showBookmarksBar: 'Yer imleri çubuğunu göster',
+  bookmarksBarEmpty: 'Sayfaları yıldız (Ctrl+D) ile yer imlerine ekleyin, burada görünsün', aboutLumo: 'Lumo hakkında', exit: 'Çıkış',
+  newTabRight: 'Sağda yeni sekme', duplicate: 'Çoğalt', pin: 'Sabitle', unpin: 'Sabitlemeyi kaldır', closeOthers: 'Diğer sekmeleri kapat',
+  closeRight: 'Sağdaki sekmeleri kapat', openAll: 'Tümünü yeni sekmelerde aç', openNewTab: 'Yeni sekmede aç', openPrivate: 'Gizli sekmede aç',
+  addPage: 'Bu sayfayı yer imlerine ekle', empty: '(boş)', remove: 'Kaldır', addShortcut: 'Kısayol ekle', recentSites: 'Son ziyaret edilenler',
+  hideSite: 'Gösterme', fullscreen: 'Tam ekran', searchWith: 'Şununla ara:', search: 'ara', upLevel: 'Geri', showTopSites: 'Yeni sekme sayfasında son ziyaret edilen siteleri göster',
   appName: 'Lumo', back: 'Geri (Alt+Sol)', forward: 'İleri (Alt+Sağ)', reload: 'Yenile (F5)', stop: 'Durdur', home: 'Ana sayfa',
   siteInfo: 'Site bilgileri', blockedTip: 'Engellenen reklam ve izleyiciler', bookmarkPage: 'Bu sayfayı yer imlerine ekle (Ctrl+D)', downloads: 'İndirilenler',
   menu: 'Menü', newTab: 'Yeni sekme', newPrivateTab: 'Yeni gizli sekme', closeTab: 'Sekmeyi kapat', addressHint: 'Ara veya web adresi yaz',
@@ -141,7 +155,7 @@ const TR = {
   privacyText: 'Lumo Browser analiz veya telemetri toplamaz ve hesap sistemi yoktur.\n\nBu bilgisayarda kalanlar: geçmiş, yer imleri, sekmeler, indirme listesi, site ayarları ve tercihler (profil klasöründe).\n\nYalnızca siz işlem yaptığınızda bilgisayardan çıkanlar: ziyaret ettiğiniz sayfalar (o sitelere), aramalar (seçtiğiniz arama motoruna), filtre listesi güncellemeleri (belirlediğiniz liste adresine) ve çeviri (sayfa adresi, belirlediğiniz sağlayıcıya).\n\nGizli sekmeler bellekte tutulan bir profil kullanır; geçmiş hiç yazılmaz, çerezleri, depolama ve önbellekleri son gizli sekme kapanınca silinir. İndirilen dosyalar korunur.\n\nFreedom bu bilgisayarın normal internet bağlantısını kullanır. VPN, proxy veya tünelleme içermez; ağ yöneticisi, okul veya site kısıtlamalarını aşamaz.',
   licensesText: 'Lumo Browser: MIT Lisansı.\nChromium Embedded Framework: BSD lisansı. Chromium ve üçüncü taraf bileşenleri: program klasöründeki CREDITS.html dosyasına bakın.\nİsteğe bağlı StevenBlack/hosts filtre listesi: MIT, yalnızca güncellemeyi seçtiğinizde indirilir.',
   compatNote: 'Bu, 32 bit Windows 10 için 32 bit (x86) bir derlemedir. Windows 11 yalnızca 64 bittir; orada 64 bit bir tarayıcı tercih edin.',
-  shortcuts: [['Ctrl+T', 'Yeni sekme'], ['Ctrl+Shift+N', 'Yeni gizli sekme'], ['Ctrl+W', 'Sekmeyi kapat'], ['Ctrl+Shift+T', 'Kapatılan sekmeyi aç'], ['Ctrl+Tab', 'Sonraki sekme'], ['Ctrl+L / F6', 'Adres çubuğu'], ['Ctrl+F', 'Sayfada bul'], ['Ctrl+D', 'Yer imi ekle'], ['Ctrl+J', 'İndirilenler'], ['Ctrl+H', 'Geçmiş'], ['Ctrl+P', 'Yazdır'], ['Ctrl+S', 'PDF olarak kaydet'], ['Ctrl + / − / 0', 'Yakınlaştırma'], ['Alt+Sol / Alt+Sağ', 'Geri / İleri'], ['F5', 'Yenile']],
+  shortcuts: [['Ctrl+T', 'Yeni sekme'], ['Ctrl+Shift+N', 'Yeni gizli sekme'], ['Ctrl+W', 'Sekmeyi kapat'], ['Ctrl+Shift+T', 'Kapatılan sekmeyi aç'], ['Ctrl+Tab / Ctrl+Shift+Tab', 'Sonraki / önceki sekme'], ['Ctrl+Shift+B', 'Yer imleri çubuğu'], ['F11', 'Tam ekran'], ['Ctrl+L / F6', 'Adres çubuğu'], ['Ctrl+F', 'Sayfada bul'], ['Ctrl+D', 'Yer imi ekle'], ['Ctrl+J', 'İndirilenler'], ['Ctrl+H', 'Geçmiş'], ['Ctrl+P', 'Yazdır'], ['Ctrl+S', 'PDF olarak kaydet'], ['Ctrl + / − / 0', 'Yakınlaştırma'], ['Alt+Sol / Alt+Sağ', 'Geri / İleri'], ['F5', 'Yenile']],
 };
 
 export const LANG = (navigator.language || 'en').toLowerCase().startsWith('tr') ? 'tr' : 'en';

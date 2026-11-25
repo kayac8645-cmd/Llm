@@ -132,17 +132,22 @@ void layout_browsers(void) {
   }
 }
 
-void set_html_fullscreen(int on) {
-  if (on == g.html_fullscreen) return;
-  g.html_fullscreen = on;
+/* The window is fullscreen while a page requested HTML fullscreen (video) or the user pressed F11.
+ * HTML fullscreen additionally hides Lumo's own UI. */
+static int g_window_is_fullscreen;
+
+static void apply_window_fullscreen(void) {
+  int want = g.html_fullscreen || g.window_fullscreen;
   HWND w = g.main_hwnd;
-  if (on) {
+  if (want == g_window_is_fullscreen) { layout_browsers(); return; }
+  g_window_is_fullscreen = want;
+  if (want) {
     g.placement.length = sizeof g.placement;
     GetWindowPlacement(w, &g.placement);
     g.saved_style = GetWindowLongW(w, GWL_STYLE);
     MONITORINFO mi = {sizeof mi};
     GetMonitorInfoW(MonitorFromWindow(w, MONITOR_DEFAULTTONEAREST), &mi);
-    SetWindowLongW(w, GWL_STYLE, g.saved_style & ~WS_OVERLAPPEDWINDOW);
+    SetWindowLongW(w, GWL_STYLE, g.saved_style & ~(WS_OVERLAPPEDWINDOW));
     SetWindowPos(w, HWND_TOP, mi.rcMonitor.left, mi.rcMonitor.top, mi.rcMonitor.right - mi.rcMonitor.left,
                  mi.rcMonitor.bottom - mi.rcMonitor.top, SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
   } else {
@@ -151,7 +156,34 @@ void set_html_fullscreen(int on) {
     SetWindowPos(w, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
   }
   layout_browsers();
-  ui_emitf("{\"type\":\"fullscreen\",\"on\":%s}", on ? "true" : "false");
+}
+
+void emit_window_state(void) {
+  ui_emitf("{\"type\":\"window\",\"maximized\":%s,\"fullscreen\":%s,\"htmlFullscreen\":%s}",
+           IsZoomed(g.main_hwnd) ? "true" : "false", g.window_fullscreen ? "true" : "false", g.html_fullscreen ? "true" : "false");
+}
+
+void set_html_fullscreen(int on) {
+  if (on == g.html_fullscreen) return;
+  g.html_fullscreen = on;
+  apply_window_fullscreen();
+  emit_window_state();
+}
+
+void set_window_fullscreen(int on) {
+  if (on == g.window_fullscreen) return;
+  g.window_fullscreen = on;
+  apply_window_fullscreen();
+  emit_window_state();
+}
+
+/* Starts a native window move from the UI's tab-strip drag area (the mouse button is already down). */
+void window_begin_drag(void) {
+  if (g_window_is_fullscreen) return;
+  POINT pt;
+  GetCursorPos(&pt);
+  ReleaseCapture();
+  PostMessageW(g.main_hwnd, WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
 }
 
 void maybe_quit(void) {
@@ -164,8 +196,34 @@ void maybe_quit(void) {
 
 static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
   switch (msg) {
+    case WM_NCCALCSIZE:
+      /* Remove the caption: Lumo draws its own title area (tab strip + window buttons). Side and
+       * bottom borders stay native so resizing, snapping and shadows keep working. */
+      if (wp && !g_window_is_fullscreen) {
+        NCCALCSIZE_PARAMS* p = (NCCALCSIZE_PARAMS*)lp;
+        int fx = GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+        int fy = GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER);
+        p->rgrc[0].left += fx;
+        p->rgrc[0].right -= fx;
+        p->rgrc[0].bottom -= fy;
+        if (IsZoomed(hwnd)) p->rgrc[0].top += fy; /* maximized windows overhang the screen */
+        else p->rgrc[0].top += 1;                  /* 1px top border keeps the top edge resizable */
+        return 0;
+      }
+      break;
+    case WM_NCHITTEST: {
+      LRESULT hit = DefWindowProcW(hwnd, msg, wp, lp);
+      if (hit == HTCLIENT && !IsZoomed(hwnd)) {
+        POINT pt = {(short)LOWORD(lp), (short)HIWORD(lp)};
+        RECT wr;
+        GetWindowRect(hwnd, &wr);
+        if (pt.y < wr.top + 4) return HTTOP;
+      }
+      return hit;
+    }
     case WM_SIZE:
       layout_browsers();
+      if (g.ui_browser) emit_window_state();
       return 0;
     case WM_ERASEBKGND:
       return 1;
@@ -222,6 +280,7 @@ static HWND create_main_window(HINSTANCE inst, int show) {
   RegisterClassExW(&wc);
   HWND hwnd = CreateWindowExW(0, wc.lpszClassName, FREEDOM_APP_NAME, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
                               CW_USEDEFAULT, CW_USEDEFAULT, 1280, 820, NULL, NULL, inst, NULL);
+  SetWindowPos(hwnd, NULL, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED); /* apply WM_NCCALCSIZE */
   ShowWindow(hwnd, show);
   UpdateWindow(hwnd);
   return hwnd;

@@ -798,6 +798,8 @@ static const char* shortcut_for(const cef_key_event_t* e) {
   if (ctrl && !alt) {
     if (shift && k == 'T') return "reopenTab";
     if (shift && k == 'N') return "newPrivateTab";
+    if (shift && k == 'B') return "toggleBookmarksBar";
+    if (shift && k == VK_DELETE) return "clearData";
     if (k == VK_TAB) return shift ? "prevTab" : "nextTab";
     if (shift) return NULL;
     switch (k) {
@@ -824,6 +826,8 @@ static const char* shortcut_for(const cef_key_event_t* e) {
     if (k == 'D') return "focusAddress";
   }
   if (!ctrl && !alt) {
+    if (k == VK_F11) return "fullscreen";
+    if (k == VK_ESCAPE && g.window_fullscreen) return "exitFullscreen";
     if (k == VK_F5) return "reload";
     if (k == VK_F6) return "focusAddress";
     if (k == VK_BROWSER_BACK) return "back";
@@ -991,7 +995,7 @@ void permission_answer(int prompt_id, int allow) {
 /* ===================================================== context menu (pages) */
 
 typedef struct { cef_context_menu_handler_t h; } menu_t;
-enum { CMD_OPEN_TAB = MENU_ID_USER_FIRST + 1, CMD_OPEN_PRIVATE, CMD_COPY_LINK, CMD_OPEN_IMAGE, CMD_SAVE_IMAGE, CMD_SAVE_LINK };
+enum { CMD_OPEN_TAB = MENU_ID_USER_FIRST + 1, CMD_OPEN_PRIVATE, CMD_COPY_LINK, CMD_OPEN_IMAGE, CMD_SAVE_IMAGE, CMD_SAVE_LINK, CMD_SEARCH_SELECTION };
 
 static void add_item(cef_menu_model_t* m, size_t index, int id, const char* en, const char* tr) {
   cef_string_t s = {0};
@@ -1015,6 +1019,9 @@ static void CEF_CALLBACK on_before_context_menu(cef_context_menu_handler_t* self
   if ((flags & CM_TYPEFLAG_MEDIA) && params->get_media_type(params) == CM_MEDIATYPE_IMAGE) {
     add_item(model, i++, CMD_OPEN_IMAGE, "Open image in new tab", "Resmi yeni sekmede aç");
     add_item(model, i++, CMD_SAVE_IMAGE, "Save image as...", "Resmi farklı kaydet...");
+  }
+  if ((flags & CM_TYPEFLAG_SELECTION) && !(flags & CM_TYPEFLAG_EDITABLE)) {
+    add_item(model, i++, CMD_SEARCH_SELECTION, "Search the web for selection", "Seçili metni web'de ara");
   }
   if (i) model->insert_separator_at(model, i);
   model->remove(model, MENU_ID_VIEW_SOURCE);
@@ -1050,6 +1057,19 @@ static int CEF_CALLBACK on_context_command(cef_context_menu_handler_t* self, cef
     case CMD_COPY_LINK:
       copy_to_clipboard(link);
       break;
+    case CMD_SEARCH_SELECTION: {
+      char* sel = csu_to_utf8_free(params->get_selection_text(params));
+      sbuf b;
+      sb_init(&b);
+      sb_printf(&b, "{\"type\":\"searchText\",\"openerId\":%d,\"private\":%s,\"text\":", t ? t->id : 0, (t && t->is_private) ? "true" : "false");
+      sel[sel[0] ? (strlen(sel) > 500 ? 500 : strlen(sel)) : 0] = 0;
+      sb_json_str(&b, sel);
+      sb_append(&b, "}");
+      ui_emit(b.data);
+      sb_free(&b);
+      free(sel);
+      break;
+    }
     case CMD_SAVE_IMAGE:
     case CMD_SAVE_LINK: {
       cef_browser_host_t* host = browser->get_host(browser);
@@ -1264,6 +1284,8 @@ void browser_clear_data(int cookies, int cache, cef_list_value_t* origins) {
 typedef struct {
   cef_dev_tools_message_observer_t o;
   int message_id;
+  int tab_id;
+  int snapshot; /* 1 = emit JPEG data URL for the UI backdrop, 0 = save PNG screenshot */
   cef_registration_t* registration;
 } shot_t;
 
@@ -1279,6 +1301,24 @@ static void CEF_CALLBACK shot_result(cef_dev_tools_message_observer_t* self, cef
   shot_t* s = (shot_t*)self;
   CEF_RELEASE(browser);
   if (message_id != s->message_id) return;
+  if (s->snapshot) {
+    /* {"data":"<base64>"} -> data URL event; the base64 alphabet needs no JSON escaping */
+    const char* r = (const char*)result;
+    const char* key = success ? strstr(r, "\"data\":\"") : NULL;
+    sbuf b;
+    sb_init(&b);
+    sb_printf(&b, "{\"type\":\"snapshot\",\"id\":%d,\"data\":\"", s->tab_id);
+    if (key) {
+      const char* start = key + 8;
+      const char* end = memchr(start, '"', size - (size_t)(start - r));
+      if (end) { sb_append(&b, "data:image/jpeg;base64,"); sb_appendn(&b, start, (size_t)(end - start)); }
+    }
+    sb_append(&b, "\"}");
+    ui_emit(b.data);
+    sb_free(&b);
+    post_ui_task(shot_done, s);
+    return;
+  }
   int ok = 0;
   wchar_t* file = NULL;
   if (success) {
@@ -1329,20 +1369,30 @@ static void CEF_CALLBACK shot_result(cef_dev_tools_message_observer_t* self, cef
   post_ui_task(shot_done, s);
 }
 
-void browser_screenshot(int tab_id) {
+static void capture(int tab_id, int snapshot) {
   tab* t = tab_find(tab_id);
-  if (!t) return;
+  if (!t) {
+    if (snapshot) ui_emitf("{\"type\":\"snapshot\",\"id\":%d,\"data\":\"\"}", tab_id);
+    return;
+  }
+  static int seq;
   cef_browser_host_t* host = t->browser->get_host(t->browser);
   shot_t* s = FR_NEW(shot_t, cef_dev_tools_message_observer_t, NULL);
   s->o.on_dev_tools_method_result = shot_result;
-  s->message_id = 0x5C0000 + (int)(GetTickCount() & 0xFFFF);
+  s->tab_id = tab_id;
+  s->snapshot = snapshot;
+  s->message_id = 0x5C0000 + (++seq & 0xFFFF);
   fr_add_ref(s);
   s->registration = host->add_dev_tools_message_observer(host, &s->o);
   cef_dictionary_value_t* params = cef_dictionary_value_create();
   cef_string_t k = {0}, v = {0}, method = {0};
   cs_set(&k, "format");
-  cs_set(&v, "png");
+  cs_set(&v, snapshot ? "jpeg" : "png");
   params->set_string(params, &k, &v);
+  if (snapshot) {
+    cs_set(&k, "quality");
+    params->set_int(params, &k, 60);
+  }
   cs_set(&method, "Page.captureScreenshot");
   host->execute_dev_tools_method(host, s->message_id, &method, params);
   cs_clear(&k);
@@ -1350,6 +1400,9 @@ void browser_screenshot(int tab_id) {
   cs_clear(&method);
   CEF_RELEASE(host);
 }
+
+void browser_screenshot(int tab_id) { capture(tab_id, 0); }
+void browser_snapshot(int tab_id) { capture(tab_id, 1); }
 
 /* ------------------------------------------------------------------- PDF */
 

@@ -127,6 +127,7 @@ typedef struct {
   int ui_full;             /* UI covers the whole window (panel/start page/error) */
   int toolbar_css_px;
   int html_fullscreen;
+  int window_fullscreen; /* F11 */
   int closing;
   int browser_count;
   wchar_t* exe_dir;
@@ -155,6 +156,9 @@ extern app_state g;
 /* main.c */
 void layout_browsers(void);
 void set_html_fullscreen(int on);
+void set_window_fullscreen(int on);
+void emit_window_state(void);
+void window_begin_drag(void);
 void maybe_quit(void);
 
 /* browser.c */
@@ -169,6 +173,7 @@ void browser_apply_cookie_policy(int block_third_party);
 void browser_apply_popup_policy(int block, char** allow, int allow_count);
 void browser_clear_data(int cookies, int cache, cef_list_value_t* origins);
 void browser_screenshot(int tab_id);
+void browser_snapshot(int tab_id); /* emits {type:"snapshot"} with a JPEG data URL for menu backdrops */
 void browser_print_pdf(int tab_id);
 void download_answer(uint32_t id, int accept);
 void download_control(uint32_t id, const char* action);

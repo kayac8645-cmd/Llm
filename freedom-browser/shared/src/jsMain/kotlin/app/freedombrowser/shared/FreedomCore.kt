@@ -20,6 +20,7 @@ object FreedomCore {
     /** `[[id, name], ...]` */
     fun searchEngines(): Array<Array<String>> = SearchEngine.entries.map { arrayOf(it.id, it.displayName) }.toTypedArray()
     fun defaultSearchEngine(): String = SearchEngine.DEFAULT.id
+    fun searchUrl(engineId: String, query: String): String = SearchEngine.fromId(engineId).searchUrl(query)
 
     fun displayUrl(url: String): String = DisplayUrl.format(url)
     fun securityLevel(url: String, certError: Boolean): String = DisplayUrl.securityLevel(url, certError).name.lowercase()
@@ -57,4 +58,29 @@ object FreedomCore {
     fun tokensCss(theme: String): String = DesignTokens.toCss(if (theme == "light") DesignTokens.Light else DesignTokens.Dark)
 
     fun now(): Double = Date.now()
+
+    /** visits: flat [url0, title0, time0, url1, ...]; returns [[url, title, host], ...] */
+    fun topSites(visits: Array<String>, now: Double, limit: Int, exclude: Array<String>): Array<Array<String>> =
+        TopSites.compute(toVisits(visits), now.toLong(), limit, exclude.toSet()).map { arrayOf(it.url, it.title, it.host) }.toTypedArray()
+
+    fun inlineCompletion(typed: String, visits: Array<String>, bookmarks: Array<String>): String =
+        Autocomplete.inline(typed, toVisits(visits), toPairs(bookmarks)) ?: ""
+
+    /** Returns [[url, title, "1"|"0" isBookmark], ...] */
+    fun suggestions(query: String, visits: Array<String>, bookmarks: Array<String>, limit: Int): Array<Array<String>> =
+        Autocomplete.suggest(query, toVisits(visits), toPairs(bookmarks), limit).map { arrayOf(it.url, it.title, if (it.isBookmark) "1" else "0") }.toTypedArray()
+
+    private fun toVisits(flat: Array<String>): List<Visit> {
+        val out = ArrayList<Visit>(flat.size / 3)
+        var i = 0
+        while (i + 2 < flat.size) { out += Visit(flat[i], flat[i + 1], flat[i + 2].toDoubleOrNull()?.toLong() ?: 0L); i += 3 }
+        return out
+    }
+
+    private fun toPairs(flat: Array<String>): List<Pair<String, String>> {
+        val out = ArrayList<Pair<String, String>>(flat.size / 2)
+        var i = 0
+        while (i + 1 < flat.size) { out += flat[i] to flat[i + 1]; i += 2 }
+        return out
+    }
 }
