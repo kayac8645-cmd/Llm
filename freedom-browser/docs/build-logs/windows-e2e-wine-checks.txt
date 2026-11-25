@@ -1,0 +1,20 @@
+== history.json contains adtest: 1
+== history.json contains private.html (must be 0): 0
+0
+== bookmarks.json: [{"id":1795619703137,"parentId":0,"title":"Ad test","url":"http://127.0.0.1:8765/adtest.html","created":1795619703137}]
+== downloads folder:
+total 48
+drwxr-xr-x  2 root root  4096 Nov 25 15:15 .
+drwxr-xr-x 14 root root  4096 Nov 25 13:29 ..
+-rw-r--r--  1 root root  4098 Nov 25 15:15 068ddb23-b475-4ff7-adc4-59fc5261d111.tmp
+-rw-r--r--  1 root root 27000 Nov 25 15:15 report.txt
+-rw-r--r--  1 root root    68 Nov 25 15:15 report.txt:Zone.Identifier
+== popup without user gesture blocked (target must not be requested): 0
+== server requests:
+REQ /adtest.html
+REQ /favicon.ico
+REQ /favicon.ico
+REQ /private.html
+REQ /report.txt
+REQ /setup.exe
+REQ /popup.html

@@ -1,0 +1,2 @@
+6cf9a7b1e4b89036b857eba4c1084cecf70509bf4acacbc657af22fc96f9e039  FreedomBrowser-1.0.0-windows-x86-portable.zip
+75d59f438153ec22868fc258981bdf099bae67ce5566aeb8ff184dd467508299  FreedomBrowser-1.0.0-windows-x86-setup.exe

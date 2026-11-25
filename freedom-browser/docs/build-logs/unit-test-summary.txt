@@ -1,0 +1,70 @@
+BlockListVectorsTest[jvm]                                              tests=  2 failures=0 errors=0 skipped=0
+    - idnRoundTrip[jvm]
+    - vectors[jvm]
+DomainLogicTest[jvm]                                                   tests= 12 failures=0 errors=0 skipped=0
+    - fileNames[jvm]
+    - displayAndSecurity[jvm]
+    - historyRanges[jvm]
+    - redactionRemovesSecrets[jvm]
+    - designTokensCss[jvm]
+    - siteSettings[jvm]
+    - webUrlParsing[jvm]
+    - formatters[jvm]
+    - pageErrors[jvm]
+    - contentDisposition[jvm]
+    - aiRequest[jvm]
+    - bookmarkCycles[jvm]
+UrlResolverTest[jvm]                                                   tests=  9 failures=0 errors=0 skipped=0
+    - bareDomainsGetHttps[jvm]
+    - fullUrlsAreKept[jvm]
+    - dangerousSchemesAreNeverNavigated[jvm]
+    - emptyInput[jvm]
+    - localAddressesUseHttp[jvm]
+    - searchTerms[jvm]
+    - unsafeCharactersAreEncoded[jvm]
+    - everyEngineBuildsEncodedUrl[jvm]
+    - userInfoTrickIsSearch[jvm]
+app.freedombrowser.browser.BrowserViewModelTest                        tests= 11 failures=0 errors=0 skipped=0
+    - closingLastPrivateTabEndsPrivateSession
+    - startsWithOneStartPageTab
+    - privacyStateFollowsSettingsAndSiteExceptions
+    - dangerousDownloadsRequireConfirmation
+    - addressInputNavigatesOrSearches
+    - errorsAreShownAndClearedByRetry
+    - privateTabNeverWritesHistory
+    - blockedRequestsAreCountedPerPage
+    - popupsWithoutGestureAreBlocked
+    - closingAllTabsLeavesAFreshStartPage
+    - desktopModeTogglesPerTab
+app.freedombrowser.browser.TabListTest                                 tests=  8 failures=0 errors=0 skipped=0
+    - closingSelectedPicksRightNeighbourThenLeft
+    - recentlyClosedIsBounded
+    - manyTabsAreAllowed
+    - closeAllPrivateKeepsNormalTabs
+    - closingPrivateTabPrefersAnotherPrivateTab
+    - openSelectsForegroundTabsOnly
+    - updateOnlyTouchesTarget
+    - recentlyClosedExcludesPrivateAndStartPages
+app.freedombrowser.data.RepositoriesTest                               tests=  6 failures=0 errors=0 skipped=0
+    - historyCollapsesRepeatsAndIgnoresNonWebUrls
+    - clearHistoryByRange
+    - historySearchMatchesTitleAndUrl
+    - siteSettingsRoundTripAndCleanup
+    - bookmarksFoldersAndCyclePrevention
+    - privateVisitsAreNeverStored
+app.freedombrowser.downloads.DownloadControllerTest                    tests=  8 failures=0 errors=0 skipped=0
+    - cancelDeletesPartialFile
+    - privateFinishedEntriesAreRemovedWhenSessionEnds
+    - serverIgnoringRangeRestartsFromZero
+    - pauseAndResumeUsesRangeRequest
+    - duplicateNamesGetSuffix
+    - httpErrorFailsAndRetrySucceeds
+    - completesDownloadAndSendsCookiesAndUserAgent
+    - dataUrlIsDecoded
+app.freedombrowser.ui.UiScreenshotTest                                 tests=  6 failures=0 errors=0 skipped=0
+    - startPage
+    - settingsScreen
+    - tabsScreen
+    - privateStartPage
+    - startPageLight
+    - certificateErrorPage

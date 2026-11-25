@@ -1,0 +1,31 @@
+# Shared conformance vectors for BlockList (Kotlin) and blocklist.c (Windows host).
+# Section 1: list lines. Section 2: queries.
+# Format of queries: Q <request-url> <page-host or -> <main|sub> <enabled 0/1> <expected 0/1> [exceptions,comma,separated]
+[list]
+0.0.0.0 ads.example.com
+127.0.0.1 tracker.test.org # trailing comment
+||cdn-ads.net^
+plain-tracker.io
+0.0.0.0 localhost
+# comment
+! adblock comment
+||withpath.com/ads^
+not a rule line
+[queries]
+Q https://ads.example.com/a.js news.com sub 1 1
+Q https://x.ads.example.com/a.js news.com sub 1 1
+Q https://example.com/a.js news.com sub 1 0
+Q https://ADS.EXAMPLE.COM/b.gif news.com sub 1 1
+Q https://tracker.test.org/p news.com sub 1 1
+Q https://img.cdn-ads.net/p.png news.com sub 1 1
+Q https://plain-tracker.io/ news.com sub 1 1
+Q https://ads.example.com/a.js news.com main 1 0
+Q https://ads.example.com/a.js news.com sub 0 0
+Q https://ads.example.com/a.js news.com sub 1 0 news.com
+Q https://ads.example.com/a.js www.news.com sub 1 0 news.com
+Q https://ads.example.com/a.js sub.news.com sub 1 0 news.com
+Q https://ads.example.com/a.js othernews.com sub 1 1 news.com
+Q https://localhost/x news.com sub 1 0
+Q https://withpath.com/ads news.com sub 1 0
+Q https://ads.example.com.evil.org/x news.com sub 1 0
+Q https://ads.example.com:8443/x - sub 1 1

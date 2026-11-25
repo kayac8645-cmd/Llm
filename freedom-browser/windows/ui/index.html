@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data:; connect-src 'self' https:; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'">
+<title>Freedom</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="toolbar" role="banner">
+  <div id="tabstrip" role="tablist" aria-label="Tabs"></div>
+  <div id="navbar">
+    <button class="ib" id="back" data-tip="back"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <button class="ib" id="forward" data-tip="forward"><svg class="i" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+    <button class="ib" id="reload" data-tip="reload"><svg class="i" viewBox="0 0 24 24" id="reloadIcon"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+    <button class="ib" id="home" data-tip="home"><svg class="i" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v10h12V10"/></svg></button>
+    <div id="omnibox">
+      <button id="security" data-tip="siteInfo"><svg class="i" viewBox="0 0 24 24" id="secIcon"></svg></button>
+      <input id="address" type="text" spellcheck="false" autocomplete="off" aria-label="Address">
+      <button id="shield" class="hidden" data-tip="blockedTip"><svg class="i" viewBox="0 0 24 24" style="width:14px;height:14px"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg><span id="shieldCount">0</span></button>
+      <button class="ib" id="star" data-tip="bookmarkPage" style="width:28px;height:28px"><svg class="i" viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/></svg></button>
+    </div>
+    <button class="ib" id="downloadsBtn" data-tip="downloads"><svg class="i" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10l5 5 5-5"/><path d="M5 20h14"/></svg><span class="badge hidden" id="dlBadge"></span></button>
+    <button class="ib" id="menuBtn" data-tip="menu"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg></button>
+  </div>
+  <div id="progress"><div></div></div>
+  <div id="findbar" class="bar hidden">
+    <input id="findInput" type="text" spellcheck="false">
+    <span id="findcount"></span>
+    <button class="ib" id="findPrev"><svg class="i" viewBox="0 0 24 24"><path d="M6 15l6-6 6 6"/></svg></button>
+    <button class="ib" id="findNext"><svg class="i" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button>
+    <span style="flex:1"></span>
+    <button class="ib" id="findClose"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+  </div>
+  <div id="infobars"></div>
+</div>
+<div id="overlay" class="hidden"></div>
+<script type="module" src="app.js"></script>
+</body>
+</html>
