@@ -12,6 +12,9 @@ import app.freedombrowser.data.SecretStore
 import app.freedombrowser.data.SessionTabEntity
 import app.freedombrowser.downloads.DownloadRequest
 import app.freedombrowser.shared.AiAssist
+import app.freedombrowser.shared.Autocomplete
+import app.freedombrowser.shared.TopSites
+import app.freedombrowser.shared.Visit
 import app.freedombrowser.shared.DisplayUrl
 import app.freedombrowser.shared.FileNames
 import app.freedombrowser.shared.HistoryRange
@@ -66,6 +69,9 @@ class BrowserViewModel(
     private val pageHosts = ConcurrentHashMap<Long, String>()
     private val certErrorTabs = HashSet<Long>()
     private val lastRecordedUrl = HashMap<Long, String>()
+    @Volatile private var recentVisits: List<Visit> = emptyList()
+    @Volatile private var bookmarkPairs: List<Pair<String, String>> = emptyList()
+    private val json = Json { ignoreUnknownKeys = true }
 
     private val settings: BrowserSettings get() = _state.value.settings
     val tabs: TabList get() = _state.value.tabs
@@ -88,6 +94,17 @@ class BrowserViewModel(
         viewModelScope.launch { c.network.online.collect { online -> _state.update { it.copy(isOnline = online) } } }
         viewModelScope.launch { c.bookmarks.bookmarkedUrls().collect { urls -> _state.update { it.copy(bookmarkedUrls = urls) } } }
         viewModelScope.launch { restoreSession() }
+        viewModelScope.launch {
+            kotlinx.coroutines.flow.combine(c.history.recent(3000), c.settings.settings) { h, s -> h to s }.collect { (h, s) ->
+                recentVisits = h.asReversed().map { Visit(it.url, it.title, it.visitedAt) }
+                val shortcuts = runCatching { json.decodeFromString<List<Shortcut>>(s.shortcutsJson) }.getOrDefault(emptyList())
+                val hidden = runCatching { json.decodeFromString<List<String>>(s.hiddenSitesJson) }.getOrDefault(emptyList())
+                val exclude = (hidden + shortcuts.mapNotNull { WebUrl.parse(it.url)?.siteKey }).toSet()
+                val top = if (s.showTopSites) withContext(Dispatchers.Default) { TopSites.compute(recentVisits, clock(), 8, exclude) } else emptyList()
+                _state.update { it.copy(shortcuts = shortcuts, topSites = top) }
+            }
+        }
+        viewModelScope.launch { c.bookmarks.allBookmarks().collect { list -> bookmarkPairs = list.map { it.title to it.url!! } } }
         observeSessionForPersistence()
     }
 
@@ -146,6 +163,7 @@ class BrowserViewModel(
     }
 
     fun selectTab(id: Long) {
+        captureCurrent()
         _state.update { it.copy(tabs = it.tabs.select(id, clock()), screen = Screen.BROWSER, find = null) }
         tabs.tab(id)?.let { if (it.url.isNotEmpty()) engine.ensure(it) }
     }
@@ -266,7 +284,50 @@ class BrowserViewModel(
         engine.setTextZoom(tab.id, percent)
     }
 
-    fun show(screen: Screen) = _state.update { it.copy(screen = screen, find = if (screen == Screen.BROWSER) it.find else null) }
+    fun show(screen: Screen) {
+        if (screen == Screen.TABS) captureCurrent()
+        _state.update { it.copy(screen = screen, find = if (screen == Screen.BROWSER) it.find else null) }
+    }
+
+    /** Stores a small preview of the current page for the tab switcher. */
+    fun captureCurrent() {
+        val tab = tabs.selected ?: return
+        if (tab.url.isEmpty() || tab.error != null) return
+        engine.capture(tab.id)?.let { bmp -> setTab(tab.id) { it.copy(thumbnail = bmp) } }
+    }
+
+    // ---- New-tab page: shortcuts and recently visited sites
+    /** Atomic read-modify-write inside the DataStore transaction (rapid edits never overwrite each other). */
+    private fun editShortcuts(transform: (List<Shortcut>) -> List<Shortcut>) = updateSettings {
+        val current = runCatching { json.decodeFromString<List<Shortcut>>(it.shortcutsJson) }.getOrDefault(emptyList())
+        it.copy(shortcutsJson = json.encodeToString(transform(current)))
+    }
+
+    /** Returns false when the address is not a valid web address. */
+    fun addShortcut(title: String, url: String): Boolean {
+        val valid = app.freedombrowser.shared.BookmarkTree.validateUrl(url) ?: return false
+        val id = "${clock()}-${(nextShortcutSeq++)}"
+        editShortcuts { it + Shortcut(id, title.trim().ifBlank { DisplayUrl.format(valid) }, valid) }
+        return true
+    }
+    private var nextShortcutSeq = 0
+    fun removeShortcut(id: String) = editShortcuts { list -> list.filter { it.id != id } }
+    fun moveShortcut(id: String, delta: Int) = editShortcuts { current ->
+        val list = current.toMutableList()
+        val i = list.indexOfFirst { it.id == id }
+        if (i < 0) return@editShortcuts current
+        val j = (i + delta).coerceIn(0, list.lastIndex)
+        list.add(j, list.removeAt(i))
+        list
+    }
+    fun hideTopSite(host: String) = updateSettings {
+        val hidden = runCatching { json.decodeFromString<List<String>>(it.hiddenSitesJson) }.getOrDefault(emptyList())
+        it.copy(hiddenSitesJson = json.encodeToString((hidden + host).distinct()))
+    }
+
+    // ---- Address bar
+    fun suggestions(query: String): List<Autocomplete.Suggestion> = Autocomplete.suggest(query, recentVisits.asReversed(), bookmarkPairs, 6)
+    fun inlineCompletion(typed: String): String? = Autocomplete.inline(typed, recentVisits, bookmarkPairs)
 
     // endregion
     // region Find in page ----------------------------------------------------------------------

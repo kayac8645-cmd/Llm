@@ -383,6 +383,12 @@ static char* run_command(const char* body) {
       CEF_RELEASE(host);
     }
     sb_append(&out, "{\"ok\":true}");
+  } else if (!strcmp(cmd, "log")) {
+    /* UI script errors, written only with --freedom-debug-log */
+    char* m = dict_str(d, "message");
+    if (g.debug && m) flog("ui: %.300s", m);
+    free(m);
+    sb_append(&out, "{\"ok\":true}");
   } else if (!strcmp(cmd, "window.minimize")) {
     ShowWindow(g.main_hwnd, SW_MINIMIZE);
     sb_append(&out, "{\"ok\":true}");

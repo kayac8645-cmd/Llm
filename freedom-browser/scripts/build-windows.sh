@@ -5,7 +5,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-VERSION="1.0.0"
+VERSION="1.1.0"
 CEF_VERSION="158.0.6+g23f1736+chromium-158.0.8127.89"
 CEF_NAME="cef_binary_${CEF_VERSION}_windows32_minimal"
 CEF_SHA1="d8baa8eb95b4e4c4a913be7cdfc8f9f1b874489c"   # from cef-builds.spotifycdn.com/<file>.sha1

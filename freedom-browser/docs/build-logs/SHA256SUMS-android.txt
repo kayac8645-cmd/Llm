@@ -1,1 +1,1 @@
-770632b88bf3dca280969a0f0e19a6a2b3bbd3a4432f3f447dba03e790b12530  LumoBrowser-1.0.0-release.apk
+c786ddd603a99aa6ffd818e63df4b5bd37f152445416c20836c1016136313ef8  LumoBrowser-1.1.0-release.apk

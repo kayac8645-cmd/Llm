@@ -49,24 +49,53 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import app.freedombrowser.R
 import app.freedombrowser.browser.Screen
+import app.freedombrowser.browser.Shortcut
+import app.freedombrowser.shared.TopSite
+import app.freedombrowser.shared.WebUrl
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import app.freedombrowser.browser.TabState
 import app.freedombrowser.shared.PageErrorKind
 import app.freedombrowser.shared.PageErrors
 
-/** Minimal start page: brand, one search field and the three library entry points. No site grid. */
+/** New-tab page: logo, search field, user shortcuts, recently visited sites and library entry points. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun StartPage(isPrivate: Boolean, onSubmit: (String) -> Unit, onOpen: (Screen) -> Unit) {
+fun StartPage(
+    isPrivate: Boolean,
+    onSubmit: (String) -> Unit,
+    onOpen: (Screen) -> Unit,
+    shortcuts: List<Shortcut> = emptyList(),
+    topSites: List<TopSite> = emptyList(),
+    onOpenUrl: (String) -> Unit = {},
+    onAddShortcut: (String, String) -> Boolean = { _, _ -> false },
+    onRemoveShortcut: (String) -> Unit = {},
+    onMoveShortcut: (String, Int) -> Unit = { _, _ -> },
+    onHideSite: (String) -> Unit = {},
+) {
     val colors = LocalFreedomColors.current
     var text by remember { mutableStateOf("") }
+    var adding by remember { mutableStateOf(false) }
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(72.dp))
-        if (isPrivate) Icon(Icons.Filled.VisibilityOff, null, tint = colors.private, modifier = Modifier.size(40.dp))
+        Spacer(Modifier.height(48.dp))
+        if (isPrivate) Icon(Icons.Filled.VisibilityOff, null, tint = colors.private, modifier = Modifier.size(48.dp))
         else androidx.compose.foundation.Image(
             androidx.compose.ui.res.painterResource(R.drawable.lumo_mark), contentDescription = null, modifier = Modifier.size(64.dp),
         )
+        Spacer(Modifier.height(8.dp))
         Text(
             stringResource(if (isPrivate) R.string.private_title else R.string.app_name),
             style = MaterialTheme.typography.headlineMedium,
@@ -91,6 +120,30 @@ fun StartPage(isPrivate: Boolean, onSubmit: (String) -> Unit, onOpen: (Screen) -
                 decorationBox = { inner -> Box { if (text.isEmpty()) Text(stringResource(R.string.start_search_hint), color = colors.textSecondary); inner() } },
             )
         }
+        if (!isPrivate) {
+            Spacer(Modifier.height(20.dp))
+            FlowRow(Modifier.widthIn(max = 560.dp), horizontalArrangement = Arrangement.Center, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                shortcuts.forEachIndexed { i, sc ->
+                    SiteTile(sc.title, sc.url, onClick = { onOpenUrl(sc.url) }, menu = listOfNotNull(
+                        if (i > 0) R.string.move_left to { onMoveShortcut(sc.id, -1) } else null,
+                        if (i < shortcuts.lastIndex) R.string.move_right to { onMoveShortcut(sc.id, 1) } else null,
+                        R.string.remove to { onRemoveShortcut(sc.id) },
+                    ))
+                }
+                AddTile { adding = true }
+            }
+            if (topSites.isNotEmpty()) {
+                Text(stringResource(R.string.recently_visited), style = MaterialTheme.typography.labelSmall, color = colors.textSecondary, modifier = Modifier.padding(top = 16.dp, bottom = 4.dp))
+                FlowRow(Modifier.widthIn(max = 560.dp), horizontalArrangement = Arrangement.Center) {
+                    topSites.forEach { site ->
+                        SiteTile(site.title, site.url, onClick = { onOpenUrl(site.url) }, menu = listOf(
+                            R.string.add_shortcut to { onAddShortcut(site.title, site.url) },
+                            R.string.dont_show to { onHideSite(site.host) },
+                        ))
+                    }
+                }
+            }
+        }
         Spacer(Modifier.height(20.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             AssistChip(onClick = { onOpen(Screen.DOWNLOADS) }, label = { Text(stringResource(R.string.downloads_title)) }, leadingIcon = { Icon(Icons.Filled.Download, null, Modifier.size(18.dp)) })
@@ -106,6 +159,63 @@ fun StartPage(isPrivate: Boolean, onSubmit: (String) -> Unit, onOpen: (Screen) -
             )
         }
     }
+    if (adding) AddShortcutDialog(onDismiss = { adding = false }) { title, url -> onAddShortcut(title, url).also { if (it) adding = false } }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun SiteTile(title: String, url: String, onClick: () -> Unit, menu: List<Pair<Int, () -> Unit>>) {
+    val colors = LocalFreedomColors.current
+    var expanded by remember { mutableStateOf(false) }
+    val letter = (WebUrl.hostOf(url)?.removePrefix("www.") ?: title).take(1).uppercase()
+    Box {
+        Column(
+            Modifier.width(80.dp).clip(RoundedCornerShape(12.dp)).combinedClickable(onClick = onClick, onLongClick = { expanded = true })
+                .padding(vertical = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(Modifier.size(48.dp).background(colors.surfaceRaised, CircleShape), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(28.dp).background(colors.accentSoft, RoundedCornerShape(8.dp)), contentAlignment = Alignment.Center) {
+                    Text(letter, color = colors.accent, style = MaterialTheme.typography.titleMedium)
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 4.dp))
+        }
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            menu.forEach { (label, action) -> DropdownMenuItem(text = { Text(stringResource(label)) }, onClick = { expanded = false; action() }) }
+        }
+    }
+}
+
+@Composable
+private fun AddTile(onClick: () -> Unit) {
+    val colors = LocalFreedomColors.current
+    Column(Modifier.width(80.dp).clip(RoundedCornerShape(12.dp)).clickable(onClick = onClick).padding(vertical = 10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(48.dp).background(colors.surfaceRaised, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Filled.Add, null) }
+        Spacer(Modifier.height(6.dp))
+        Text(stringResource(R.string.add_shortcut), maxLines = 1, style = MaterialTheme.typography.labelSmall)
+    }
+}
+
+@Composable
+private fun AddShortcutDialog(onDismiss: () -> Unit, onSave: (String, String) -> Boolean) {
+    var title by remember { mutableStateOf("") }
+    var url by remember { mutableStateOf("") }
+    var error by remember { mutableStateOf(false) }
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.add_shortcut)) },
+        text = {
+            Column {
+                androidx.compose.material3.OutlinedTextField(title, { title = it }, singleLine = true, label = { Text(stringResource(R.string.title)) })
+                androidx.compose.material3.OutlinedTextField(url, { url = it; error = false }, singleLine = true, label = { Text(stringResource(R.string.url)) }, isError = error)
+                if (error) Text(stringResource(R.string.bookmark_err_url), color = LocalFreedomColors.current.danger)
+            }
+        },
+        confirmButton = { androidx.compose.material3.TextButton(onClick = { if (!onSave(title, url)) error = true }) { Text(stringResource(R.string.save)) } },
+        dismissButton = { androidx.compose.material3.TextButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) } },
+    )
 }
 
 @Composable

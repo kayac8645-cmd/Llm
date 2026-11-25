@@ -61,6 +61,19 @@ Nothing was run on a physical Android device or on a physical 32-bit Windows ins
 | Renderer crash recovery | ✅ | ✅ | B | Android `onRenderProcessGone`; Windows `on_render_process_terminated` |
 | Low-memory handling | ✅ | 🟡 | U | Windows relies on lazy tab creation and Chromium's own memory management |
 | Diagnostic log without browsing contents | ✅ | ✅ | E | Android opt-in; Windows `freedom.log` contains no URLs |
+| **1.1 interface** |||||
+| Chrome-style frameless title bar with window buttons, drag/double-click, snapping | — | ✅ | E | Wine virtual desktop |
+| F11 full screen | — | ✅ | E | |
+| Tab drag-and-drop reordering, pin, duplicate, tab context menu | 🟡 | ✅ | E | Android: no pinning or reordering |
+| Bookmarks bar with folders, drag-and-drop, context menus | — | ✅ | E | |
+| Inline autocomplete + local suggestions + search-provider chips | ✅ | ✅ | U, E | no remote suggestions (privacy) |
+| New tab page: shortcuts (add/remove/reorder) + recently visited | ✅ | ✅ | U, R, E | |
+| Visual tab switcher with page previews | ✅ | — | R | Windows uses the tab strip |
+| Profile area | 🟡 | 🟡 | E | local profile only; no accounts/sync |
+| Extensions | ❌ | ❌ | — | not supported by WebView / CEF Alloy; no fake panel |
+| Private *window* | ❌ | ❌ | — | private tabs instead |
+| Splash screen | ✅ | — | B | Android 12+ system splash |
+| Tablet / landscape layout | ✅ | — | B | ≥ 600 dp |
 | **Other** |||||
 | HTTP authentication dialog | ✅ | ✅ | B | |
 | File upload (`<input type=file>`) | ✅ | ✅ | B | Windows uses CEF's default dialog |

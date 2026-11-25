@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DesktopWindows
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Photo
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Search
@@ -73,6 +74,7 @@ fun MainMenuSheet(state: BrowserUiState, vm: BrowserViewModel, actions: PageActi
     val tab = state.currentTab ?: return
     val hasPage = tab.url.isNotEmpty() && tab.error == null
     var showZoom by remember { mutableStateOf(false) }
+    var showAbout by remember { mutableStateOf(false) }
     val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     fun run(action: () -> Unit) { action(); onDismiss() }
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheet) {
@@ -101,8 +103,27 @@ fun MainMenuSheet(state: BrowserUiState, vm: BrowserViewModel, actions: PageActi
             }
             HorizontalDivider(Modifier.padding(vertical = 4.dp))
             MenuItem(Icons.Filled.Settings, R.string.settings_title) { run { vm.show(Screen.SETTINGS) } }
+            MenuItem(Icons.Filled.Info, R.string.about_lumo) { showAbout = true }
         }
     }
+    if (showAbout) AboutDialog(actions) { showAbout = false; onDismiss() }
+}
+
+@Composable
+fun AboutDialog(actions: PageActions, onDismiss: () -> Unit) {
+    androidx.compose.material3.AlertDialog(
+        onDismissRequest = onDismiss,
+        icon = { androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(R.drawable.lumo_mark), null, Modifier.size(64.dp)) },
+        title = { Text("Lumo Browser") },
+        text = {
+            Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                Text(stringResource(R.string.about_version, actions.appVersion(), actions.engineVersion()), style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(8.dp))
+                Text(stringResource(R.string.about_no_telemetry), style = MaterialTheme.typography.labelSmall, color = LocalFreedomColors.current.textSecondary)
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("OK") } },
+    )
 }
 
 @Composable

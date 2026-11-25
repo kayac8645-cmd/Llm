@@ -54,6 +54,19 @@ class UiScreenshotTest {
         save("android-start-dark")
     }
 
+    @Test fun startPageWithShortcutsAndRecentSites() {
+        content {
+            StartPage(
+                isPrivate = false, onSubmit = {}, onOpen = {},
+                shortcuts = listOf(app.freedombrowser.browser.Shortcut("1", "GitHub", "https://github.com/"), app.freedombrowser.browser.Shortcut("2", "Wikipedia", "https://wikipedia.org/")),
+                topSites = listOf(app.freedombrowser.shared.TopSite("https://kotlinlang.org/", "Kotlin", "kotlinlang.org", 3.0), app.freedombrowser.shared.TopSite("https://news.ycombinator.com/", "Hacker News", "news.ycombinator.com", 2.0)),
+            )
+        }
+        compose.onNodeWithText("Add shortcut").assertExists()
+        compose.onNodeWithText("Recently visited").assertExists()
+        save("android-start-tiles")
+    }
+
     @Test fun startPageLight() {
         content(ThemeMode.LIGHT) { StartPage(isPrivate = false, onSubmit = {}, onOpen = {}) }
         save("android-start-light")

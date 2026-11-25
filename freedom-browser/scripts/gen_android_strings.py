@@ -4,6 +4,15 @@ import os, sys
 from xml.sax.saxutils import escape
 
 S = {
+"search_with": ("Search with:", "Şununla ara:"),
+"move_left": ("Move left", "Sola taşı"),
+"move_right": ("Move right", "Sağa taşı"),
+"remove": ("Remove", "Kaldır"),
+"recently_visited": ("Recently visited", "Son ziyaret edilenler"),
+"add_shortcut": ("Add shortcut", "Kısayol ekle"),
+"dont_show": ("Don't show", "Gösterme"),
+"about_lumo": ("About Lumo", "Lumo hakkında"),
+"show_top_sites": ("Show recently visited sites on the new tab page", "Yeni sekme sayfasında son ziyaret edilen siteleri göster"),
 "app_name": ("Lumo", "Lumo"),
 "about_no_telemetry": ("No analytics or telemetry. Browsing data stays on this device.", "Analiz veya telemetri yok. Tarama verileri bu cihazda kalır."),
 "about_version": ("Lumo Browser %1$s · Engine: %2$s", "Lumo Browser %1$s · Motor: %2$s"),

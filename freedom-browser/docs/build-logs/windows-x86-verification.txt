@@ -1,4 +1,4 @@
-Lumo Browser 1.0.0 - Windows x86 artifact verification (2026-11-25T15:39:35Z)
+Lumo Browser 1.1.0 - Windows x86 artifact verification (2026-11-25T18:23:30Z)
 CEF 158.0.6+g23f1736+chromium-158.0.8127.89 (windows32), archive SHA-1 d8baa8eb95b4e4c4a913be7cdfc8f9f1b874489c verified
 
 OK   LumoBrowser.dll              PE32 executable (DLL) (console) Intel 80386 (stripped to external PDB), for MS Windows, 11 sections | objdump: i386

@@ -63,3 +63,23 @@ presentation delay for panels opened by keyboard shortcuts.
   `WINDOWS_X86_COMPATIBILITY.md`); GPU paths, Windows sandbox enforcement and SmartScreen behaviour differ from Wine.
 * Third-party-cookie preference and per-site pop-up exceptions on Windows (code paths exist; not exercised by the
   automated scenario).
+
+---
+
+# 1.1 UI upgrade – results (2026-11-25)
+
+| Suite | Result |
+|---|---|
+| Shared (JVM) | **27 / 27 passed** (+ `TopSitesTest`: frecency ranking, exclusions, inline completion, suggestion ranking) |
+| Shared JS facade | passed |
+| Android unit + Robolectric | **42 / 42 passed** (+ shortcuts add/move/remove, recently-visited + suggestions + hide, new-tab-page rendering) |
+| Native block-list (C) | 17 / 17 |
+| x86 verification | 8 / 8 PE files PE32/i386 (`docs/build-logs/windows-x86-verification.txt`) |
+| Windows E2E under Wine 11 (virtual desktop) | all previous checks still pass; new screenshots: title bar + window buttons, new-tab page, inline autocomplete with engine chips, tab context menu over the page, maximize/restore, profile menu, settings |
+| Manual Wine checks | tab drag-and-drop reordering, bookmarks bar, F11 full screen on/off, maximize/restore icon |
+| Installer 1.1.0 | silent install (21 entries) → uninstall OK |
+
+Defect found by the new tests and fixed: rapid consecutive shortcut edits on Android overwrote each other (now an
+atomic read-modify-write inside the DataStore transaction).
+
+Open items are unchanged: no physical Android device and no real 32-bit Windows 10 PC were available.

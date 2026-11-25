@@ -169,6 +169,20 @@ class WebViewManager(
         attempt(10)
     }
 
+    override fun capture(tabId: Long): Bitmap? {
+        val wv = views[tabId] ?: return null
+        if (wv.width <= 0 || wv.height <= 0 || wv.parent == null) return null
+        return runCatching {
+            val scale = 0.35f
+            val bmp = Bitmap.createBitmap((wv.width * scale).toInt().coerceAtLeast(1), (wv.height * scale).toInt().coerceAtLeast(1), Bitmap.Config.RGB_565)
+            val canvas = android.graphics.Canvas(bmp)
+            canvas.scale(scale, scale)
+            canvas.translate(-wv.scrollX.toFloat(), -wv.scrollY.toFloat())
+            wv.draw(canvas)
+            bmp
+        }.getOrNull()
+    }
+
     fun cookiesFor(url: String, isPrivate: Boolean): String? =
         if (isPrivate && supportsPrivateProfiles) runCatching { ProfileStore.getInstance().getOrCreateProfile(PRIVATE_PROFILE).cookieManager.getCookie(url) }.getOrNull()
         else CookieManager.getInstance().getCookie(url)

@@ -103,6 +103,7 @@ private fun MainSettings(state: BrowserUiState, vm: BrowserViewModel, actions: P
     RadioRow(stringResource(R.string.homepage_start), s.homepageMode == HomepageMode.START_PAGE) { vm.updateSettings { it.copy(homepageMode = HomepageMode.START_PAGE) } }
     RadioRow(stringResource(R.string.homepage_custom, s.homepageUrl.ifBlank { "—" }), s.homepageMode == HomepageMode.CUSTOM_URL) { editHome = true }
     SwitchRow(R.string.restore_tabs, s.restoreTabs) { v -> vm.updateSettings { it.copy(restoreTabs = v) } }
+    SwitchRow(R.string.show_top_sites, s.showTopSites) { v -> vm.updateSettings { it.copy(showTopSites = v) } }
 
     Section(R.string.section_appearance)
     ThemeMode.entries.forEach { m ->

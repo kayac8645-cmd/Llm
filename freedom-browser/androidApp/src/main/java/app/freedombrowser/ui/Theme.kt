@@ -22,6 +22,8 @@ data class FreedomColors(val palette: DesignTokens.Palette, val isDark: Boolean)
     val success = Color(palette.success)
     val textSecondary = Color(palette.textSecondary)
     val surfaceRaised = Color(palette.surfaceRaised)
+    val toolbar = Color(palette.toolbar)
+    val accentSoft = Color(palette.accentSoft)
     val outline = Color(palette.outline)
 }
 

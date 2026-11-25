@@ -28,6 +28,9 @@ data class TabState(
     val error: PageError? = null,
     val blockedCount: Int = 0,
     val favicon: Bitmap? = null,
+    /** Tab-switcher preview (captured when leaving the tab). */
+    val thumbnail: Bitmap? = null,
+    val pinned: Boolean = false,
     val lastActive: Long = 0,
 ) {
     val isStartPage: Boolean get() = url.isEmpty() && error == null

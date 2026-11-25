@@ -6,6 +6,8 @@ import { FreedomCore } from './shared/freedom-shared.mjs';
 import { T } from './i18n.js';
 
 const core = FreedomCore.getInstance();
+window.addEventListener('error', e => { try { fetch('freedom://ui/ipc', { method: 'POST', body: JSON.stringify({ cmd: 'log', message: `${e.message} @${e.lineno}:${e.colno}` }) }); } catch {} });
+window.addEventListener('unhandledrejection', e => { try { fetch('freedom://ui/ipc', { method: 'POST', body: JSON.stringify({ cmd: 'log', message: 'rejection: ' + (e.reason?.stack || e.reason) }) }); } catch {} });
 const $ = sel => document.querySelector(sel);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const ICON = {
@@ -840,7 +842,7 @@ function renderError(t) {
 }
 
 function renderSuggest() {
-  const q = S.suggest.text.trim();
+  const q = (S.suggest.full || S.suggest.text).trim();
   const items = [];
   if (q) {
     const [kind, url] = core.resolveInput(q, S.settings.engine);
@@ -1353,7 +1355,7 @@ address.addEventListener('input', e => {
     }
   }
   const first = !S.suggest;
-  S.suggest = { text: typed, sel: 0 };
+  S.suggest = { text: typed, full: address.value, sel: 0 };
   if (first) ensureBackdrop().then(render); else render();
 });
 address.addEventListener('keydown', e => {

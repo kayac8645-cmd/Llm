@@ -1,2 +1,2 @@
-f73b0b0d4dd3beaebeab4934f36c75c1f624c8b8b160bd0f2a92f93bc8d628e5  LumoBrowser-1.0.0-windows-x86-portable.zip
-e760c553c4a6a6ae7b40915a67df4329bb9a3a554b0c65116414681d68e5aa9a  LumoBrowser-1.0.0-windows-x86-setup.exe
+d2d798b96a47660e5026901a2bb43f2fdefe97c5c7457dcb26c1bee4568806c7  LumoBrowser-1.1.0-windows-x86-portable.zip
+8274564adbd1701e49722e540958341362c7ccce50c649dee8fcfa0ea84f08e3  LumoBrowser-1.1.0-windows-x86-setup.exe

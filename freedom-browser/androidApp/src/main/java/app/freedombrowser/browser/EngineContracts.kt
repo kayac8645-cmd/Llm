@@ -27,6 +27,8 @@ interface TabEngine {
     /** Runs a read-only script in the page and returns its JSON-encoded result. */
     fun evaluate(tabId: Long, script: String, callback: (String?) -> Unit)
     fun onPrivateSessionEnded()
+    /** Small preview of the tab's visible page for the tab switcher, or null. */
+    fun capture(tabId: Long): Bitmap?
 }
 
 /** Events from the page engine to the ViewModel. All calls happen on the main thread. */

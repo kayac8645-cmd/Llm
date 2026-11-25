@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -77,14 +78,26 @@ fun TabsScreen(state: BrowserUiState, vm: BrowserViewModel) {
                 Tab(selected = privateMode, onClick = { privateMode = true }, text = { Text(stringResource(R.string.tabs_private_count, state.tabs.privateTabs.size)) })
             }
         }
-        LazyColumn(Modifier.weight(1f), contentPadding = PaddingValues(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(list, key = { it.id }) { tab -> TabRowItem(tab, tab.id == state.tabs.selectedId, onSelect = { vm.selectTab(tab.id) }, onClose = { vm.closeTab(tab.id) }) }
-            if (list.isEmpty()) item {
+        val full = androidx.compose.foundation.lazy.grid.GridItemSpan(Int.MAX_VALUE)
+        androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+            columns = androidx.compose.foundation.lazy.grid.GridCells.Adaptive(160.dp),
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            items(list.size, key = { list[it].id }) { i ->
+                val tab = list[i]
+                TabCard(tab, tab.id == state.tabs.selectedId, onSelect = { vm.selectTab(tab.id) }, onClose = { vm.closeTab(tab.id) },
+                    modifier = Modifier.animateItem())
+            }
+            if (list.isEmpty()) item(span = { full }) {
                 Text(stringResource(if (privateMode) R.string.no_private_tabs else R.string.no_tabs), color = colors.textSecondary, modifier = Modifier.padding(24.dp))
             }
             if (!privateMode && state.tabs.recentlyClosed.isNotEmpty()) {
-                item { Text(stringResource(R.string.recently_closed), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp, start = 4.dp)) }
-                items(state.tabs.recentlyClosed.take(10)) { closed ->
+                item(span = { full }) { Text(stringResource(R.string.recently_closed), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 16.dp, start = 4.dp)) }
+                items(state.tabs.recentlyClosed.take(10).size, span = { full }) { i ->
+                    val closed = state.tabs.recentlyClosed[i]
                     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { vm.openNewTab(closed.url) }.padding(12.dp)) {
                         Column {
                             Text(closed.title.ifBlank { closed.url }, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium)
@@ -104,31 +117,38 @@ fun TabsScreen(state: BrowserUiState, vm: BrowserViewModel) {
     }
 }
 
+/** Tab switcher card: title bar with favicon and close button above a preview of the page. */
 @Composable
-private fun TabRowItem(tab: TabState, selected: Boolean, onSelect: () -> Unit, onClose: () -> Unit) {
+private fun TabCard(tab: TabState, selected: Boolean, onSelect: () -> Unit, onClose: () -> Unit, modifier: Modifier = Modifier) {
     val colors = LocalFreedomColors.current
     val border = if (selected) (if (tab.isPrivate) colors.private else colors.accent) else colors.outline
-    Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(colors.surfaceRaised)
-            .border(1.dp, border, RoundedCornerShape(12.dp)).clickable(onClick = onSelect).padding(start = 14.dp, top = 10.dp, bottom = 10.dp),
-        verticalAlignment = Alignment.CenterVertically,
+    Column(
+        modifier.clip(RoundedCornerShape(14.dp)).background(colors.surfaceRaised)
+            .border(if (selected) 2.dp else 1.dp, border, RoundedCornerShape(14.dp)).clickable(onClick = onSelect),
     ) {
-        Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
-            val icon = tab.favicon
-            when {
-                icon != null -> Image(icon.asImageBitmap(), null, Modifier.size(20.dp))
-                tab.isPrivate -> Icon(Icons.Filled.VisibilityOff, null, tint = colors.private, modifier = Modifier.size(20.dp))
-                else -> Icon(Icons.Filled.Public, null, tint = colors.textSecondary, modifier = Modifier.size(20.dp))
+        Row(Modifier.fillMaxWidth().padding(start = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(18.dp), contentAlignment = Alignment.Center) {
+                val icon = tab.favicon
+                when {
+                    icon != null -> Image(icon.asImageBitmap(), null, Modifier.size(16.dp))
+                    tab.isPrivate -> Icon(Icons.Filled.VisibilityOff, null, tint = colors.private, modifier = Modifier.size(16.dp))
+                    else -> Icon(Icons.Filled.Public, null, tint = colors.textSecondary, modifier = Modifier.size(16.dp))
+                }
             }
-        }
-        Spacer(Modifier.width(12.dp))
-        Column(Modifier.weight(1f)) {
+            Spacer(Modifier.width(6.dp))
             Text(
                 tab.title.ifBlank { if (tab.url.isEmpty()) stringResource(R.string.start_page) else DisplayUrl.format(tab.url) },
-                maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f),
             )
-            if (tab.url.isNotEmpty()) Text(DisplayUrl.format(tab.url), maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall, color = colors.textSecondary)
+            IconButton(onClick = onClose, modifier = Modifier.size(40.dp)) { Icon(Icons.Filled.Close, stringResource(R.string.close_tab), Modifier.size(18.dp)) }
         }
-        IconButton(onClick = onClose) { Icon(Icons.Filled.Close, stringResource(R.string.close_tab)) }
+        Box(Modifier.fillMaxWidth().aspectRatio(0.78f).background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.Center) {
+            val thumb = tab.thumbnail
+            when {
+                thumb != null -> Image(thumb.asImageBitmap(), null, Modifier.fillMaxSize(), contentScale = androidx.compose.ui.layout.ContentScale.Crop, alignment = Alignment.TopCenter)
+                tab.url.isEmpty() -> Image(androidx.compose.ui.res.painterResource(if (tab.isPrivate) R.drawable.lumo_mark else R.drawable.lumo_mark), null, Modifier.size(48.dp), alpha = if (tab.isPrivate) 0.4f else 1f)
+                else -> Text(DisplayUrl.format(tab.url), style = MaterialTheme.typography.labelSmall, color = colors.textSecondary, maxLines = 3, modifier = Modifier.padding(12.dp))
+            }
+        }
     }
 }

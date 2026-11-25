@@ -42,6 +42,7 @@ class FakeEngine : TabEngine {
     override fun trimMemory(keepTabId: Long?, aggressive: Boolean) {}
     override fun evaluate(tabId: Long, script: String, callback: (String?) -> Unit) = callback("\"\"")
     override fun onPrivateSessionEnded() { privateSessionsEnded++ }
+    override fun capture(tabId: Long): android.graphics.Bitmap? = null
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -175,5 +176,33 @@ class BrowserViewModelTest {
         vm.setAdBlockException("news.com", true)
         settle { "news.com" in container.privacy.adBlockExceptions }
         assertTrue("news.com" in container.privacy.adBlockExceptions)
+    }
+
+    @Test fun shortcutsAddMoveRemove() {
+        assertTrue(vm.addShortcut("Kotlin", "kotlinlang.org"))
+        assertFalse(vm.addShortcut("Bad", "javascript:alert(1)"))
+        assertTrue(vm.addShortcut("", "example.com"))
+        settle { vm.state.value.shortcuts.size == 2 }
+        assertEquals(listOf("https://kotlinlang.org/", "https://example.com/"), vm.state.value.shortcuts.map { it.url })
+        val second = vm.state.value.shortcuts[1].id
+        vm.moveShortcut(second, -1)
+        settle { vm.state.value.shortcuts.firstOrNull()?.id == second }
+        assertEquals("https://example.com/", vm.state.value.shortcuts.first().url)
+        vm.removeShortcut(second)
+        settle { vm.state.value.shortcuts.size == 1 }
+        assertEquals(1, vm.state.value.shortcuts.size)
+    }
+
+    @Test fun topSitesAndSuggestionsComeFromHistory() {
+        val id = vm.openNewTab("https://github.com/")!!
+        vm.onHistoryUpdate(id, "https://github.com/", false, false)
+        vm.onTitle(id, "GitHub")
+        settle { vm.state.value.topSites.isNotEmpty() }
+        assertEquals("github.com", vm.state.value.topSites.first().host)
+        assertEquals("github.com", vm.inlineCompletion("git"))
+        assertEquals("https://github.com/", vm.suggestions("github").first().url)
+        vm.hideTopSite("github.com")
+        settle { vm.state.value.topSites.isEmpty() }
+        assertTrue(vm.state.value.topSites.isEmpty())
     }
 }

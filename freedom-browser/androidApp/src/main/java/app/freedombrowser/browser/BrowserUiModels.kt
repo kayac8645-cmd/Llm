@@ -4,6 +4,12 @@ import app.freedombrowser.data.BrowserSettings
 import app.freedombrowser.shared.AiAssist
 import app.freedombrowser.shared.SitePermission
 import app.freedombrowser.shared.SiteSettings
+import app.freedombrowser.shared.TopSite
+import kotlinx.serialization.Serializable
+
+/** User-defined new-tab-page shortcut. */
+@Serializable
+data class Shortcut(val id: String, val title: String, val url: String)
 
 enum class Screen { BROWSER, TABS, BOOKMARKS, HISTORY, DOWNLOADS, SETTINGS }
 
@@ -55,6 +61,8 @@ data class BrowserUiState(
     val privateSupported: Boolean = true,
     val aiKeyConfigured: Boolean = false,
     val restored: Boolean = false,
+    val shortcuts: List<Shortcut> = emptyList(),
+    val topSites: List<TopSite> = emptyList(),
 ) {
     val currentTab: TabState? get() = tabs.selected
 }

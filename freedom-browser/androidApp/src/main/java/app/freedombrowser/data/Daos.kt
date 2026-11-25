@@ -26,6 +26,9 @@ interface BookmarkDao {
     @Query("SELECT url FROM bookmarks WHERE url IS NOT NULL")
     fun allUrls(): Flow<List<String>>
 
+    @Query("SELECT * FROM bookmarks WHERE url IS NOT NULL")
+    fun allBookmarks(): Flow<List<BookmarkEntity>>
+
     @Query("SELECT * FROM bookmarks WHERE id = :id")
     suspend fun get(id: Long): BookmarkEntity?
 

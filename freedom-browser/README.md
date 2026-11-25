@@ -20,10 +20,10 @@ Artifacts are produced by `scripts/build-windows.sh` and Gradle, and by the GitH
 
 | Artifact | Platform | Notes |
 |---|---|---|
-| `LumoBrowser-1.0.0-release.apk` | Android 10+ (API 29) | R8-minified, signed with a **sideload test key** – see [docs/BUILD.md](docs/BUILD.md#release-signing) |
-| `LumoBrowser-1.0.0-debug.apk` | Android 10+ | Debug build |
-| `LumoBrowser-1.0.0-windows-x86-portable.zip` | Windows 10 (32-bit or 64-bit) | Unzip and run `LumoBrowser.exe`; data stays in `profile\` |
-| `LumoBrowser-1.0.0-windows-x86-setup.exe` | Windows 10 (32-bit or 64-bit) | Per-user installer, no admin rights needed |
+| `LumoBrowser-1.1.0-release.apk` | Android 10+ (API 29) | R8-minified, signed with a **sideload test key** – see [docs/BUILD.md](docs/BUILD.md#release-signing) |
+| `LumoBrowser-1.1.0-debug.apk` | Android 10+ | Debug build |
+| `LumoBrowser-1.1.0-windows-x86-portable.zip` | Windows 10 (32-bit or 64-bit) | Unzip and run `LumoBrowser.exe`; data stays in `profile\` |
+| `LumoBrowser-1.1.0-windows-x86-setup.exe` | Windows 10 (32-bit or 64-bit) | Per-user installer, no admin rights needed |
 
 Windows 11 is 64-bit only. The x86 build runs there through WOW64, but it is intended for 32-bit Windows 10.
 
@@ -58,6 +58,7 @@ Full prerequisites, signing and troubleshooting: [docs/BUILD.md](docs/BUILD.md).
 
 ## Documentation
 
+- [1.1 UI upgrade](docs/UI_UPGRADE_1.1.md) – Chrome-style interface, what changed, what is not supported
 - [Architecture](docs/ARCHITECTURE.md) – Android WebView and Windows CEF embedding, IPC security model
 - [Feature matrix](docs/FEATURE_MATRIX.md) – implemented / partial / unsupported, per platform
 - [Windows x86 compatibility report](docs/WINDOWS_X86_COMPATIBILITY.md) – stack decision, OS minimum, verification

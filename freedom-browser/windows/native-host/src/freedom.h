@@ -47,7 +47,7 @@
 #include "include/capi/cef_task_capi.h"
 #include "include/capi/cef_values_capi.h"
 
-#define FREEDOM_VERSION "1.0.0"
+#define FREEDOM_VERSION "1.1.0"
 #define FREEDOM_APP_NAME L"Lumo Browser"
 
 /* ---------------------------------------------------------------- util.c */

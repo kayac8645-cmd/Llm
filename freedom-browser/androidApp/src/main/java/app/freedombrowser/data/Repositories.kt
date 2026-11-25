@@ -14,6 +14,7 @@ class BookmarkRepository(private val dao: BookmarkDao) {
     fun folders() = dao.folders()
     fun search(q: String) = dao.search(q)
     fun bookmarkedUrls(): Flow<Set<String>> = dao.allUrls().map { it.toSet() }
+    fun allBookmarks() = dao.allBookmarks()
     suspend fun findByUrl(url: String) = dao.findByUrl(url)
 
     sealed class Result {

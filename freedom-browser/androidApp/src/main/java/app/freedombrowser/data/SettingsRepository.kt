@@ -36,6 +36,10 @@ data class BrowserSettings(
     val aiEndpoint: String = "",
     val aiModel: String = "",
     val diagnosticsLogging: Boolean = false,
+    /** New-tab page: user shortcuts (JSON list of {id,title,url}) and hidden "recently visited" sites. */
+    val shortcutsJson: String = "[]",
+    val hiddenSitesJson: String = "[]",
+    val showTopSites: Boolean = true,
 ) {
     companion object {
         /** StevenBlack unified hosts (MIT licensed), downloaded only when the user taps "Update". */
@@ -67,6 +71,9 @@ class SettingsRepository(private val context: Context) {
         val aiEndpoint = stringPreferencesKey("ai_endpoint")
         val aiModel = stringPreferencesKey("ai_model")
         val diagnostics = booleanPreferencesKey("diagnostics")
+        val shortcuts = stringPreferencesKey("shortcuts")
+        val hiddenSites = stringPreferencesKey("hidden_sites")
+        val showTopSites = booleanPreferencesKey("show_top_sites")
     }
 
     val settings: Flow<BrowserSettings> = context.dataStore.data.map(::read)
@@ -93,6 +100,9 @@ class SettingsRepository(private val context: Context) {
             aiEndpoint = p[K.aiEndpoint] ?: d.aiEndpoint,
             aiModel = p[K.aiModel] ?: d.aiModel,
             diagnosticsLogging = p[K.diagnostics] ?: d.diagnosticsLogging,
+            shortcutsJson = p[K.shortcuts] ?: d.shortcutsJson,
+            hiddenSitesJson = p[K.hiddenSites] ?: d.hiddenSitesJson,
+            showTopSites = p[K.showTopSites] ?: d.showTopSites,
         )
     }
 
@@ -119,6 +129,9 @@ class SettingsRepository(private val context: Context) {
             p[K.aiEndpoint] = n.aiEndpoint
             p[K.aiModel] = n.aiModel
             p[K.diagnostics] = n.diagnosticsLogging
+            p[K.shortcuts] = n.shortcutsJson
+            p[K.hiddenSites] = n.hiddenSitesJson
+            p[K.showTopSites] = n.showTopSites
         }
     }
 }
