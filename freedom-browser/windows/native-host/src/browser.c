@@ -235,6 +235,55 @@ static void CEF_CALLBACK on_progress(cef_display_handler_t* self, cef_browser_t*
   CEF_RELEASE(browser);
 }
 
+/* ============================================================ site tweaks */
+
+/* https://duckduckgo.com/...?q=... (or a subdomain) – mirrors shared SiteTweaks.isDuckDuckGoResults. */
+static int is_ddg_results(const char* url) {
+  if (!str_starts_with(url, "https://")) return 0;
+  char* host = url_host(url);
+  int ok = 0;
+  if (host) {
+    size_t n = strlen(host);
+    ok = !strcmp(host, "duckduckgo.com") || (n > 15 && !strcmp(host + n - 15, ".duckduckgo.com"));
+    free(host);
+  }
+  if (!ok) return 0;
+  const char* q = strchr(url, '?');
+  while (q) {
+    if (q[1] == 'q' && q[2] == '=' && q[3] && q[3] != '&' && q[3] != '#') return 1;
+    q = strchr(q + 1, '&');
+  }
+  return 0;
+}
+
+static void apply_site_tweaks(cef_frame_t* frame) {
+  if (!g.hide_ddg_header || !g.ddg_script || !frame->is_main(frame)) return;
+  char* url = csu_to_utf8_free(frame->get_url(frame));
+  if (is_ddg_results(url)) {
+    cef_string_t code = {0}, src = {0};
+    cs_set(&code, g.ddg_script);
+    cs_set(&src, "lumo://site-tweaks/duckduckgo.js");
+    frame->execute_java_script(frame, &code, &src, 0);
+    cs_clear(&code);
+    cs_clear(&src);
+  }
+  free(url);
+}
+
+/* Debug builds of the site tweaks report through console.debug("[lumo] ..."); only those lines are
+ * logged, and only with --freedom-debug-log. Page console output is never logged. */
+static int CEF_CALLBACK on_console_message(cef_display_handler_t* self, cef_browser_t* browser, cef_log_severity_t level,
+                                          const cef_string_t* message, const cef_string_t* source, int line) {
+  (void)self; (void)level; (void)source; (void)line;
+  if (g.debug) {
+    char* m = cs_to_utf8(message);
+    if (str_starts_with(m, "[lumo]")) flog("page: %.120s", m);
+    free(m);
+  }
+  CEF_RELEASE(browser);
+  return 0;
+}
+
 /* =========================================================== load handler */
 
 typedef struct { cef_load_handler_t h; } load_t;
@@ -251,6 +300,14 @@ static void CEF_CALLBACK on_load_start(cef_load_handler_t* self, cef_browser_t* 
   (void)self; (void)tt;
   tab* t = tab_find_browser(browser);
   if (t && frame->is_main(frame)) ui_emitf("{\"type\":\"loadStart\",\"id\":%d}", t->id);
+  if (t) apply_site_tweaks(frame);
+  CEF_RELEASE(browser);
+  CEF_RELEASE(frame);
+}
+
+static void CEF_CALLBACK on_load_end(cef_load_handler_t* self, cef_browser_t* browser, cef_frame_t* frame, int status) {
+  (void)self; (void)status;
+  if (tab_find_browser(browser)) apply_site_tweaks(frame); /* idempotent: the script guards itself */
   CEF_RELEASE(browser);
   CEF_RELEASE(frame);
 }
@@ -1132,10 +1189,12 @@ cef_client_t* content_client(void) {
   c->disp->h.on_favicon_urlchange = on_favicon;
   c->disp->h.on_fullscreen_mode_change = on_fullscreen;
   c->disp->h.on_loading_progress_change = on_progress;
+  c->disp->h.on_console_message = on_console_message;
   c->load = FR_NEW(load_t, cef_load_handler_t, NULL);
   c->load->h.on_loading_state_change = on_loading_state;
   c->load->h.on_load_start = on_load_start;
   c->load->h.on_load_error = on_load_error;
+  c->load->h.on_load_end = on_load_end;
   c->req = FR_NEW(req_t, cef_request_handler_t, NULL);
   c->req->h.on_before_browse = on_before_browse;
   c->req->h.get_resource_request_handler = get_rrh;

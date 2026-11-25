@@ -4,6 +4,8 @@ import os, sys
 from xml.sax.saxutils import escape
 
 S = {
+"hide_ddg_header": ("Hide DuckDuckGo header on result pages", "DuckDuckGo sonuç sayfalarında üst başlığı gizle"),
+"hide_ddg_header_hint": ("Hides the logo, Duck.ai and menu row; the search box and result tabs stay.", "Logo, Duck.ai ve menü satırını gizler; arama kutusu ve sonuç sekmeleri kalır."),
 "search_with": ("Search with:", "Şununla ara:"),
 "move_left": ("Move left", "Sola taşı"),
 "move_right": ("Move right", "Sağa taşı"),

@@ -36,6 +36,7 @@ import app.freedombrowser.data.BrowserSettings
 import app.freedombrowser.privacy.PrivacyState
 import app.freedombrowser.shared.PageErrors
 import app.freedombrowser.shared.SitePermission
+import app.freedombrowser.shared.SiteTweaks
 import app.freedombrowser.util.Diagnostics
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -70,6 +71,8 @@ class WebViewManager(
     private val savedStates = HashMap<Long, Bundle>()
     private val privateTabs = HashSet<Long>()
     private val desktopTabs = HashSet<Long>()
+    private val ddgScripts = HashMap<Long, androidx.webkit.ScriptHandler>()
+    private val documentStartScripts = WebViewFeature.isFeatureSupported(WebViewFeature.DOCUMENT_START_SCRIPT)
     private val mainHandler = Handler(Looper.getMainLooper())
     private var settings = BrowserSettings()
     private val defaultUserAgent: String = WebSettings.getDefaultUserAgent(appContext)
@@ -119,6 +122,7 @@ class WebViewManager(
     override fun stop(tabId: Long) { views[tabId]?.stopLoading() }
 
     override fun destroy(tabId: Long) {
+        ddgScripts.remove(tabId)
         savedStates.remove(tabId)
         desktopTabs.remove(tabId)
         val wv = views.remove(tabId) ?: run { privateTabs.remove(tabId); return }
@@ -146,7 +150,19 @@ class WebViewManager(
 
     override fun applySettings(settings: BrowserSettings) {
         this.settings = settings
-        for ((id, wv) in views) configure(wv, id)
+        for ((id, wv) in views) { configure(wv, id); applySiteTweaks(id, wv) }
+    }
+
+    /** DuckDuckGo result-page tweak: injected at document start for duckduckgo.com origins only. */
+    private fun applySiteTweaks(tabId: Long, wv: WebView) {
+        if (!documentStartScripts) return
+        val installed = ddgScripts[tabId]
+        if (settings.hideDuckDuckGoHeader && installed == null) {
+            ddgScripts[tabId] = WebViewCompat.addDocumentStartJavaScript(wv, SiteTweaks.DUCKDUCKGO_HIDE_HEADER_JS, SiteTweaks.DUCKDUCKGO_ORIGINS)
+        } else if (!settings.hideDuckDuckGoHeader && installed != null) {
+            installed.remove()
+            ddgScripts.remove(tabId)
+        }
     }
 
     override fun trimMemory(keepTabId: Long?, aggressive: Boolean) {
@@ -210,6 +226,7 @@ class WebViewManager(
     }
 
     private fun destroyViewOnly(tabId: Long) {
+        ddgScripts.remove(tabId)
         val wv = views.remove(tabId) ?: return
         wv.stopLoading()
         wv.destroy()
@@ -224,6 +241,7 @@ class WebViewManager(
         if (desktop) desktopTabs.add(tabId)
         wv.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         configure(wv, tabId)
+        applySiteTweaks(tabId, wv)
         zoom?.let { wv.settings.textZoom = it }
         wv.webViewClient = Client(tabId)
         wv.webChromeClient = Chrome(tabId)
@@ -317,6 +335,10 @@ class WebViewManager(
         }
 
         override fun onPageFinished(view: WebView, url: String) {
+            // Older WebViews without document-start scripts: apply the cosmetic tweak after load.
+            if (!documentStartScripts && settings.hideDuckDuckGoHeader && SiteTweaks.isDuckDuckGoResults(url)) {
+                view.evaluateJavascript(SiteTweaks.DUCKDUCKGO_HIDE_HEADER_JS, null)
+            }
             listener.onPageFinished(tabId, url)
             listener.onHistoryUpdate(tabId, url, view.canGoBack(), view.canGoForward())
         }

@@ -140,6 +140,8 @@
     <string name="find_previous">Previous match</string>
     <string name="folder">Folder</string>
     <string name="forward">Forward</string>
+    <string name="hide_ddg_header">Hide DuckDuckGo header on result pages</string>
+    <string name="hide_ddg_header_hint">Hides the logo, Duck.ai and menu row; the search box and result tabs stay.</string>
     <string name="history_title">History</string>
     <string name="home">Home</string>
     <string name="homepage_custom">Custom page: %s</string>

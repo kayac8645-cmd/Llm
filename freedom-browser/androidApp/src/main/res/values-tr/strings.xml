@@ -139,6 +139,8 @@
     <string name="find_previous">Önceki eşleşme</string>
     <string name="folder">Klasör</string>
     <string name="forward">İleri</string>
+    <string name="hide_ddg_header">DuckDuckGo sonuç sayfalarında üst başlığı gizle</string>
+    <string name="hide_ddg_header_hint">Logo, Duck.ai ve menü satırını gizler; arama kutusu ve sonuç sekmeleri kalır.</string>
     <string name="history_title">Geçmiş</string>
     <string name="home">Ana sayfa</string>
     <string name="homepage_custom">Özel sayfa: %s</string>

@@ -39,6 +39,7 @@ Nothing was run on a physical Android device or on a physical 32-bit Windows ins
 | Desktop-site mode | ✅ | — | U | desktop UA + UA client hints |
 | Zoom | ✅ | ✅ | B | Android text zoom + pinch; Windows Chrome zoom steps |
 | Find in page | ✅ | ✅ | B | |
+| Hide DuckDuckGo header (logo, Duck.ai, menu) on result pages — setting, on by default | ✅ | ✅ | U, B | cosmetic page script for `duckduckgo.com` only; depends on DuckDuckGo markup (checked 2026-11-25) and may need an update if the site changes; search box, result tabs and results stay |
 | Reader mode | ❌ | ❌ | — | future work; not shipped rather than shipped unreliable |
 | Print / save as PDF | ✅ | ✅ | B | Android system print dialog ("Save as PDF") |
 | Screenshot | 🟡 | 🟡 | B | visible area only |

@@ -146,6 +146,8 @@ typedef struct {
   int block_popups;
   char** popup_allow; int popup_allow_count;
   int ask_download;
+  int hide_ddg_header;   /* UI thread only */
+  char* ddg_script;      /* cosmetic DuckDuckGo tweak from the shared module; UI thread only */
   cef_dictionary_value_t* site_permissions; /* site -> {camera:"allow"...} */
   /* saved window placement for HTML fullscreen */
   WINDOWPLACEMENT placement; LONG saved_style;

@@ -98,6 +98,7 @@ private fun MainSettings(state: BrowserUiState, vm: BrowserViewModel, actions: P
 
     Section(R.string.section_search)
     SearchEngine.entries.forEach { e -> RadioRow(e.displayName, s.searchEngine == e) { vm.updateSettings { it.copy(searchEngine = e) } } }
+    SwitchRow(R.string.hide_ddg_header, s.hideDuckDuckGoHeader, R.string.hide_ddg_header_hint) { v -> vm.updateSettings { it.copy(hideDuckDuckGoHeader = v) } }
 
     Section(R.string.section_homepage)
     RadioRow(stringResource(R.string.homepage_start), s.homepageMode == HomepageMode.START_PAGE) { vm.updateSettings { it.copy(homepageMode = HomepageMode.START_PAGE) } }

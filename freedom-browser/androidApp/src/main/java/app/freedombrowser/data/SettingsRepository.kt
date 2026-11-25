@@ -40,6 +40,8 @@ data class BrowserSettings(
     val shortcutsJson: String = "[]",
     val hiddenSitesJson: String = "[]",
     val showTopSites: Boolean = true,
+    /** Hide DuckDuckGo's logo / Duck.ai / menu row on result pages (cosmetic CSS only). */
+    val hideDuckDuckGoHeader: Boolean = true,
 ) {
     companion object {
         /** StevenBlack unified hosts (MIT licensed), downloaded only when the user taps "Update". */
@@ -74,6 +76,7 @@ class SettingsRepository(private val context: Context) {
         val shortcuts = stringPreferencesKey("shortcuts")
         val hiddenSites = stringPreferencesKey("hidden_sites")
         val showTopSites = booleanPreferencesKey("show_top_sites")
+        val hideDdgHeader = booleanPreferencesKey("hide_ddg_header")
     }
 
     val settings: Flow<BrowserSettings> = context.dataStore.data.map(::read)
@@ -103,6 +106,7 @@ class SettingsRepository(private val context: Context) {
             shortcutsJson = p[K.shortcuts] ?: d.shortcutsJson,
             hiddenSitesJson = p[K.hiddenSites] ?: d.hiddenSitesJson,
             showTopSites = p[K.showTopSites] ?: d.showTopSites,
+            hideDuckDuckGoHeader = p[K.hideDdgHeader] ?: d.hideDuckDuckGoHeader,
         )
     }
 
@@ -132,6 +136,7 @@ class SettingsRepository(private val context: Context) {
             p[K.shortcuts] = n.shortcutsJson
             p[K.hiddenSites] = n.hiddenSitesJson
             p[K.showTopSites] = n.showTopSites
+            p[K.hideDdgHeader] = n.hideDuckDuckGoHeader
         }
     }
 }

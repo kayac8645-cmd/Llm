@@ -59,6 +59,8 @@ object FreedomCore {
 
     fun now(): Double = Date.now()
 
+    fun ddgHeaderScript(): String = SiteTweaks.DUCKDUCKGO_HIDE_HEADER_JS
+
     /** visits: flat [url0, title0, time0, url1, ...]; returns [[url, title, host], ...] */
     fun topSites(visits: Array<String>, now: Double, limit: Int, exclude: Array<String>): Array<Array<String>> =
         TopSites.compute(toVisits(visits), now.toLong(), limit, exclude.toSet()).map { arrayOf(it.url, it.title, it.host) }.toTypedArray()

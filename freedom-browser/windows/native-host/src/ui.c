@@ -258,6 +258,9 @@ static void apply_config(cef_dictionary_value_t* d) {
   if (dl && *dl) { free(g.downloads_dir); g.downloads_dir = utf8_to_wide(dl); }
   ReleaseSRWLockExclusive(&g.lock);
   free(dl);
+  g.hide_ddg_header = dict_bool(d, "hideDdgHeader", 1);
+  char* script = dict_str(d, "ddgScript");
+  if (script) { free(g.ddg_script); g.ddg_script = script; }
   browser_apply_cookie_policy(dict_bool(d, "blockThirdPartyCookies", 1));
   AcquireSRWLockShared(&g.lock);
   browser_apply_popup_policy(g.block_popups, g.popup_allow, g.popup_allow_count);

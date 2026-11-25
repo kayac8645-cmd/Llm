@@ -20,4 +20,5 @@ assert.equal(core.bookmarkMoveCreatesCycle('1', '3', ['1', '', '2', '1', '3', '2
 assert.ok(core.tokensCss('dark').includes('--accent:#2ec4b6;'));
 assert.equal(core.redactUrl('https://a.com/x?token=1'), 'https://a.com/x');
 assert.equal(core.searchEngines().length, 4);
+assert.ok(core.ddgHeaderScript().includes('__lumoDdgHeader'));
 console.log('shared JS facade: all checks passed');

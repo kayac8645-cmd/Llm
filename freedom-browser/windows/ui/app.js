@@ -58,7 +58,7 @@ const DEFAULT_SETTINGS = {
   adblock: true, blockPopups: true, block3p: true, askDownload: false, downloadDir: '',
   blockListUrl: 'https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts', blockListUpdated: 0,
   translateTemplate: 'https://translate.google.com/translate?sl=auto&tl={lang}&u={url}',
-  showBookmarksBar: false, showTopSites: true,
+  showBookmarksBar: false, showTopSites: true, hideDdgHeader: true,
 };
 const S = {
   info: {}, settings: { ...DEFAULT_SETTINGS }, tabs: [], selected: 0, nextId: 1, closed: [],
@@ -88,7 +88,8 @@ function pushConfig() {
     if (v.popups === 'allow') popupAllow.push(site);
   }
   ipc('config', { adblock: s.adblock, adblockExceptions: exceptions, blockPopups: s.blockPopups, popupAllow,
-    blockThirdPartyCookies: s.block3p, askDownload: s.askDownload, downloadDir: s.downloadDir, permissions });
+    blockThirdPartyCookies: s.block3p, askDownload: s.askDownload, downloadDir: s.downloadDir, permissions,
+    hideDdgHeader: s.hideDdgHeader, ddgScript: core.ddgHeaderScript() });
 }
 function saveSettings() { storage.set('settings', S.settings); pushConfig(); }
 function saveSites() { storage.set('sites', S.sites); pushConfig(); }
@@ -1128,6 +1129,7 @@ function renderSettings() {
   return `<div class="page"><h1>${esc(T.settings)}</h1>
     <h2>${esc(T.sSearch)}</h2>
     <div class="set"><div class="lbl">${esc(T.sSearch)}</div><select class="field" data-select="engine">${core.searchEngines().map(([id, n]) => opt(id, n, s.engine)).join('')}</select></div>
+    <div class="set"><div class="lbl">${esc(T.hideDdg)}<div class="s">${esc(T.hideDdgHint)}</div></div>${sw('hideDdgHeader', s.hideDdgHeader)}</div>
     <h2>${esc(T.sHome)}</h2>
     <div class="set"><div class="lbl">${esc(T.home)}</div><select class="field" data-select="homeMode">${opt('start', T.homeStart, s.homeMode)}${opt('custom', T.homeCustom, s.homeMode)}</select></div>
     ${s.homeMode === 'custom' ? `<div class="set"><div class="lbl">${esc(T.url)}</div><input class="field grow" data-text="homeUrl" value="${esc(s.homeUrl)}" placeholder="https://"></div>` : ''}

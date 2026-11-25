@@ -82,4 +82,14 @@ presentation delay for panels opened by keyboard shortcuts.
 Defect found by the new tests and fixed: rapid consecutive shortcut edits on Android overwrote each other (now an
 atomic read-modify-write inside the DataStore transaction).
 
+### DuckDuckGo header hiding (1.1.0 update)
+
+| Check | Result |
+|---|---|
+| `:shared:jvmTest` (adds `SiteTweaksTest`: URL detection, script guards) | 29 / 29 passed |
+| `:androidApp:testDebugUnitTest` | 42 / 42 passed |
+| Playwright (Chromium) on a mock built from the live DOM structure, phone + desktop | logo, Duck.ai, menu hidden; search form, tabs incl. "Ask Duck.ai", result favicons, results visible; home page untouched |
+| Lumo Windows x86 under Wine on live `duckduckgo.com/?q=GitHub` | logo and menu hidden; search box, tabs and results visible |
+| Android on a real device | not verified (no device); uses `addDocumentStartJavaScript`, fallback `evaluateJavascript` on page finish |
+
 Open items are unchanged: no physical Android device and no real 32-bit Windows 10 PC were available.

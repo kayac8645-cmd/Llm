@@ -1,5 +1,6 @@
 // UI strings (English + Turkish). The language follows the Windows display language.
 const EN = {
+  hideDdg: 'Hide DuckDuckGo header on result pages', hideDdgHint: 'Hides the logo, Duck.ai and menu row; the search box and result tabs stay. Takes effect on the next page load.',
   minimize: 'Minimize', maximize: 'Maximize', restore: 'Restore', closeWindow: 'Close', profile: 'Lumo profile',
   profileName: 'Lumo', localProfile: 'Local profile · data stays on this computer', showBookmarksBar: 'Show bookmarks bar',
   bookmarksBarEmpty: 'Bookmark pages with the star (Ctrl+D) to see them here', aboutLumo: 'About Lumo', exit: 'Exit',
@@ -82,6 +83,7 @@ const EN = {
 
 const TR = {
   ...EN,
+  hideDdg: 'DuckDuckGo sonuç sayfalarında üst başlığı gizle', hideDdgHint: 'Logo, Duck.ai ve menü satırını gizler; arama kutusu ve sonuç sekmeleri kalır. Bir sonraki sayfa yüklemesinde etkinleşir.',
   minimize: 'Simge durumuna küçült', maximize: 'Ekranı kapla', restore: 'Önceki boyut', closeWindow: 'Kapat', profile: 'Lumo profili',
   profileName: 'Lumo', localProfile: 'Yerel profil · veriler bu bilgisayarda kalır', showBookmarksBar: 'Yer imleri çubuğunu göster',
   bookmarksBarEmpty: 'Sayfaları yıldız (Ctrl+D) ile yer imlerine ekleyin, burada görünsün', aboutLumo: 'Lumo hakkında', exit: 'Çıkış',
