@@ -1,7 +1,7 @@
 # Builds the Windows x86 (32-bit) native host with MinGW-w64 (cross-compile from Linux or MSYS2).
 #   make CEF_DIR=/path/to/cef_binary_..._windows32_minimal
 # Outputs:
-#   build/FreedomBrowser.dll  - loaded by CEF's bootstrap.exe (renamed FreedomBrowser.exe): sandbox ON
+#   build/LumoBrowser.dll  - loaded by CEF's bootstrap.exe (renamed LumoBrowser.exe): sandbox ON
 #   build/freedom-compat.exe  - standalone executable without the Chromium sandbox (troubleshooting)
 #   build/blocklist_test      - native unit test (host compiler)
 
@@ -21,7 +21,7 @@ LIBS    := $(CEF_DIR)/Release/libcef.dll -lshell32 -lole32 -luuid -lcomdlg32 -lu
 SRC := src/main.c src/ui.c src/browser.c src/util.c src/blocklist.c
 HDR := src/freedom.h src/blocklist.h
 
-all: $(OUT)/FreedomBrowser.dll $(OUT)/freedom-compat.exe
+all: $(OUT)/LumoBrowser.dll $(OUT)/freedom-compat.exe
 
 $(OUT):
 	mkdir -p $(OUT)
@@ -32,7 +32,7 @@ $(OUT)/res-dll.o: freedom.rc freedom.ico freedom.manifest | $(OUT)
 $(OUT)/res-exe.o: freedom.rc freedom.ico freedom.manifest | $(OUT)
 	$(WINDRES) -O coff -i freedom.rc -o $@
 
-$(OUT)/FreedomBrowser.dll: $(SRC) $(HDR) $(OUT)/res-dll.o
+$(OUT)/LumoBrowser.dll: $(SRC) $(HDR) $(OUT)/res-dll.o
 	$(CC) $(CFLAGS) -DFREEDOM_BOOTSTRAP -shared -o $@ $(SRC) $(OUT)/res-dll.o $(LDFLAGS) $(LIBS)
 
 $(OUT)/freedom-compat.exe: $(SRC) $(HDR) $(OUT)/res-exe.o

@@ -1,4 +1,4 @@
-# Freedom Browser
+# Lumo Browser
 
 A minimal, privacy-respecting Chromium-based browser for **Android** and **32-bit (x86) Windows**.
 Dark anthracite surfaces, a restrained turquoise accent, no clutter, no telemetry.
@@ -7,7 +7,7 @@ Dark anthracite surfaces, a restrained turquoise accent, no clutter, no telemetr
 |---|---|
 | ![Android start](docs/screenshots/android-start-dark.png) | ![Windows start](docs/screenshots/windows-start.png) |
 
-> **Türkçe özet:** Freedom Browser; Android (Android System WebView) ve 32 bit Windows (Chromium Embedded
+> **Türkçe özet:** Lumo Browser; Android (Android System WebView) ve 32 bit Windows (Chromium Embedded
 > Framework 158, x86) için tek bir projede geliştirilmiş, telemetrisiz, sade bir tarayıcıdır. Sekmeler, gizli
 > sekmeler, indirmeler (duraklat/devam), yer imleri, geçmiş, reklam/izleyici engelleme, site izinleri, sayfada bul,
 > PDF/yazdırma, ekran görüntüsü ve isteğe bağlı YZ (yalnızca Android) içerir. VPN/proxy/tünelleme **içermez** ve
@@ -20,10 +20,10 @@ Artifacts are produced by `scripts/build-windows.sh` and Gradle, and by the GitH
 
 | Artifact | Platform | Notes |
 |---|---|---|
-| `FreedomBrowser-1.0.0-release.apk` | Android 10+ (API 29) | R8-minified, signed with a **sideload test key** – see [docs/BUILD.md](docs/BUILD.md#release-signing) |
-| `FreedomBrowser-1.0.0-debug.apk` | Android 10+ | Debug build |
-| `FreedomBrowser-1.0.0-windows-x86-portable.zip` | Windows 10 (32-bit or 64-bit) | Unzip and run `FreedomBrowser.exe`; data stays in `profile\` |
-| `FreedomBrowser-1.0.0-windows-x86-setup.exe` | Windows 10 (32-bit or 64-bit) | Per-user installer, no admin rights needed |
+| `LumoBrowser-1.0.0-release.apk` | Android 10+ (API 29) | R8-minified, signed with a **sideload test key** – see [docs/BUILD.md](docs/BUILD.md#release-signing) |
+| `LumoBrowser-1.0.0-debug.apk` | Android 10+ | Debug build |
+| `LumoBrowser-1.0.0-windows-x86-portable.zip` | Windows 10 (32-bit or 64-bit) | Unzip and run `LumoBrowser.exe`; data stays in `profile\` |
+| `LumoBrowser-1.0.0-windows-x86-setup.exe` | Windows 10 (32-bit or 64-bit) | Per-user installer, no admin rights needed |
 
 Windows 11 is 64-bit only. The x86 build runs there through WOW64, but it is intended for 32-bit Windows 10.
 
@@ -66,7 +66,7 @@ Full prerequisites, signing and troubleshooting: [docs/BUILD.md](docs/BUILD.md).
 
 ## Network and access
 
-Freedom uses the device's ordinary internet connection. It contains **no VPN, proxy, tunnelling, traffic
+Lumo uses the device's ordinary internet connection. It contains **no VPN, proxy, tunnelling, traffic
 disguise or policy-bypass functionality**. A browser cannot guarantee access to every website: site-side blocks,
 geographic or account restrictions, outages and network-administrator policies (school, company, MEB) still apply.
 

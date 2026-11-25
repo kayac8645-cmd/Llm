@@ -376,7 +376,7 @@ static int CEF_CALLBACK on_before_browse(cef_request_handler_t* self, cef_browse
   (void)self; (void)user_gesture; (void)is_redirect;
   char* url = csu_to_utf8_free(request->get_url(request));
   int is_main = frame->is_main(frame);
-  /* Content tabs never show local files, internal schemes or Freedom's UI. */
+  /* Content tabs never show local files, internal schemes or Lumo's UI. */
   int cancel = is_main && (str_starts_with(url, "file:") || str_starts_with(url, "freedom:") || str_starts_with(url, "chrome:") ||
                            str_starts_with(url, "devtools:") || str_starts_with(url, "javascript:"));
   free(url);
@@ -1297,7 +1297,7 @@ static void CEF_CALLBACK shot_result(cef_dev_tools_message_observer_t* self, cef
         bin->get_data(bin, bytes, n, 0);
         PWSTR pics = NULL;
         if (SUCCEEDED(SHGetKnownFolderPath(&FOLDERID_Pictures, 0, NULL, &pics))) {
-          wchar_t* dir = path_join(pics, L"Freedom");
+          wchar_t* dir = path_join(pics, L"Lumo");
           CreateDirectoryW(dir, NULL);
           SYSTEMTIME t;
           GetLocalTime(&t);

@@ -1,4 +1,4 @@
-# Building Freedom Browser
+# Building Lumo Browser
 
 ## Toolchain (pinned, verified 2026-11-25)
 
@@ -36,8 +36,8 @@ export FREEDOM_KEYSTORE=/secure/path/freedom.jks FREEDOM_KEYSTORE_PASSWORD=... F
 ./gradlew :androidApp:assembleRelease
 ```
 
-The `FreedomBrowser-1.0.0-release.apk` produced in this delivery was signed with a throw-away **sideload test key**
-(`CN=Freedom Browser sideload test key`, SHA-256 `81f5b2e7…5de5`). Android only installs updates signed with the same
+The `LumoBrowser-1.0.0-release.apk` produced in this delivery was signed with a throw-away **sideload test key**
+(`CN=Lumo Browser sideload test key`, SHA-256 `81f5b2e7…5de5`). Android only installs updates signed with the same
 key, so for a store or long-term distribution create your own key and rebuild.
 
 ### Maven Central rate limits
@@ -60,11 +60,11 @@ The script:
 1. downloads `cef_binary_158.0.6+g23f1736+chromium-158.0.8127.89_windows32_minimal.tar.bz2` from the official CEF CDN and
    checks its SHA-1 (`d8baa8eb…489c`);
 2. compiles the shared Kotlin module to JavaScript and smoke-tests the facade with Node;
-3. builds `FreedomBrowser.dll` (bootstrap/sandbox mode) and `freedom-compat.exe` with `i686-w64-mingw32-gcc`, and runs the
+3. builds `LumoBrowser.dll` (bootstrap/sandbox mode) and `freedom-compat.exe` with `i686-w64-mingw32-gcc`, and runs the
    native block-list test against the shared vectors;
-4. stages the app (CEF's `bootstrap.exe` renamed to `FreedomBrowser.exe`, our DLL, CEF runtime, UI, licenses);
+4. stages the app (CEF's `bootstrap.exe` renamed to `LumoBrowser.exe`, our DLL, CEF runtime, UI, licenses);
 5. verifies **every** `.exe`/`.dll` is `PE32` + `Intel 80386` (`file` and `objdump`) → `dist/windows-x86-verification.txt`;
-6. writes `dist/FreedomBrowser-1.0.0-windows-x86-portable.zip` and `dist/FreedomBrowser-1.0.0-windows-x86-setup.exe`.
+6. writes `dist/LumoBrowser-1.0.0-windows-x86-portable.zip` and `dist/LumoBrowser-1.0.0-windows-x86-setup.exe`.
 
 ### On Windows (MSYS2)
 
@@ -75,7 +75,7 @@ Install `mingw-w64-i686-gcc`, `make`, NSIS and a JDK, then run the same steps ma
 ### End-to-end test under Wine (optional)
 
 ```bash
-WINEPREFIX=~/.wine-freedom windows/tests/e2e/run-wine-e2e.sh dist/stage/FreedomBrowser dist/e2e-wine
+WINEPREFIX=~/.wine-freedom windows/tests/e2e/run-wine-e2e.sh dist/stage/LumoBrowser dist/e2e-wine
 ```
 
 Requires Wine ≥ 9 with 32-bit support, Xvfb, xdotool and ImageMagick. Wine is not Windows; see the compatibility report.

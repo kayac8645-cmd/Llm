@@ -1,8 +1,8 @@
-Freedom Browser 1.0.0 - Windows x86 artifact verification (2026-11-25T15:11:50Z)
+Lumo Browser 1.0.0 - Windows x86 artifact verification (2026-11-25T15:39:35Z)
 CEF 158.0.6+g23f1736+chromium-158.0.8127.89 (windows32), archive SHA-1 d8baa8eb95b4e4c4a913be7cdfc8f9f1b874489c verified
 
-OK   FreedomBrowser.dll           PE32 executable (DLL) (console) Intel 80386 (stripped to external PDB), for MS Windows, 11 sections | objdump: i386
-OK   FreedomBrowser.exe           PE32 executable (GUI) Intel 80386, for MS Windows, 9 sections | objdump: i386
+OK   LumoBrowser.dll              PE32 executable (DLL) (console) Intel 80386 (stripped to external PDB), for MS Windows, 11 sections | objdump: i386
+OK   LumoBrowser.exe              PE32 executable (GUI) Intel 80386, for MS Windows, 9 sections | objdump: i386
 OK   chrome_elf.dll               PE32 executable (DLL) (GUI) Intel 80386, for MS Windows, 10 sections | objdump: i386
 OK   d3dcompiler_47.dll           PE32 executable (DLL) (console) Intel 80386, for MS Windows, 6 sections | objdump: i386
 OK   freedom-compat.exe           PE32 executable (GUI) Intel 80386 (stripped to external PDB), for MS Windows, 10 sections | objdump: i386
@@ -10,7 +10,7 @@ OK   libcef.dll                   PE32 executable (DLL) (console) Intel 80386, f
 OK   vk_swiftshader.dll           PE32 executable (DLL) (console) Intel 80386, for MS Windows, 7 sections | objdump: i386
 OK   vulkan-1.dll                 PE32 executable (DLL) (console) Intel 80386, for MS Windows, 7 sections | objdump: i386
 
-Imports of FreedomBrowser.dll:
+Imports of LumoBrowser.dll:
   ADVAPI32.dll
   COMDLG32.DLL
   GDI32.dll
@@ -20,7 +20,7 @@ Imports of FreedomBrowser.dll:
   SHELL32.dll
   USER32.dll
   libcef.dll
-Exports of FreedomBrowser.dll:
+Exports of LumoBrowser.dll:
   RunWinMain
 
 RESULT: all PE files are 32-bit x86 (PE32, i386)

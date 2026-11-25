@@ -1,4 +1,4 @@
-// Freedom Browser – Windows UI controller.
+// Lumo Browser – Windows UI controller.
 // Runs inside CEF at freedom://ui/ and talks to the native host through freedom://ui/ipc (POST JSON).
 // Domain logic (URL resolution, search, file names, history ranges, design tokens...) comes from the
 // shared Kotlin module compiled to JavaScript, so Android and Windows behave the same.
@@ -181,7 +181,7 @@ function goHome() {
   const t = cur();
   if (!t) return;
   if (S.settings.homeMode === 'custom' && S.settings.homeUrl) return submit(S.settings.homeUrl, t);
-  // Start page: drop the browser for this tab (frees memory) and show Freedom's start page.
+  // Start page: drop the browser for this tab (frees memory) and show Lumo's start page.
   if (t.hasBrowser) ipc('tab.close', { id: t.id });
   const fresh = newTabState(S.nextId++, t.private);
   S.tabs[S.tabs.indexOf(t)] = fresh;
@@ -525,7 +525,7 @@ function render() {
   const key = `${full}|${toolbarH}`;
   if (key !== lastLayout) { lastLayout = key; ipc('layout', { full, toolbar: toolbarH }); }
   const t = cur();
-  document.title = t ? (t.title || (t.url ? core.displayUrl(t.url) : T.startPage)) + ' – Freedom' : 'Freedom';
+  document.title = t ? (t.title || (t.url ? core.displayUrl(t.url) : T.startPage)) + ' – Lumo' : 'Lumo';
   ipcTitle(document.title);
   paintNudge();
 }
@@ -615,7 +615,7 @@ function renderOverlay() {
 function renderStart(t) {
   const priv = t?.private;
   return `<div class="page start">
-    <div class="brand">${priv ? svg('eye', 'style="width:40px;height:40px;color:var(--private)"') : `<svg viewBox="0 0 108 108" fill="none" stroke-linecap="round" stroke-linejoin="round">${ICON.brand}</svg>`}
+    <div class="brand">${priv ? svg('eye', 'style="width:40px;height:40px;color:var(--private)"') : `<img src="logo.png" alt="" width="48" height="48">`}
       <span class="${priv ? 'private-title' : ''}">${esc(priv ? T.privateTitle : T.appName)}</span></div>
     <form class="search" data-form="start">${svg('search')}<input id="startInput" type="text" placeholder="${esc(T.startHint)}" spellcheck="false" autocomplete="off"></form>
     <div class="chips">

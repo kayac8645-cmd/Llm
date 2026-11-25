@@ -35,7 +35,7 @@ static void CEF_CALLBACK on_context_initialized(cef_browser_process_handler_t* s
     g.browser_count++;
   } else {
     flog("failed to create UI browser");
-    MessageBoxW(g.main_hwnd, L"Freedom Browser could not start its interface.", FREEDOM_APP_NAME, MB_ICONERROR);
+    MessageBoxW(g.main_hwnd, L"Lumo Browser could not start its interface.", FREEDOM_APP_NAME, MB_ICONERROR);
     cef_quit_message_loop();
   }
   layout_browsers();
@@ -218,7 +218,7 @@ static HWND create_main_window(HINSTANCE inst, int show) {
   wc.hIconSm = wc.hIcon;
   wc.hCursor = LoadCursor(NULL, IDC_ARROW);
   wc.hbrBackground = CreateSolidBrush(RGB(0x0B, 0x0C, 0x0E));
-  wc.lpszClassName = L"FreedomBrowserMainWindow";
+  wc.lpszClassName = L"LumoBrowserMainWindow";
   RegisterClassExW(&wc);
   HWND hwnd = CreateWindowExW(0, wc.lpszClassName, FREEDOM_APP_NAME, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
                               CW_USEDEFAULT, CW_USEDEFAULT, 1280, 820, NULL, NULL, inst, NULL);
@@ -253,7 +253,7 @@ static void init_paths(void) {
     g.profile_dir = path_join(g.exe_dir, L"profile");
   } else {
     wchar_t* local = known_folder(&FOLDERID_LocalAppData);
-    wchar_t* app = path_join(local ? local : g.exe_dir, L"FreedomBrowser");
+    wchar_t* app = path_join(local ? local : g.exe_dir, L"LumoBrowser");
     CreateDirectoryW(app, NULL);
     g.profile_dir = path_join(app, L"User Data");
     free(app);
@@ -323,7 +323,7 @@ static int run(HINSTANCE inst, int show, void* sandbox_info) {
   app->base.add_ref(&app->base);
   if (!cef_initialize(&args, &s, app, sandbox_info)) {
     flog("cef_initialize failed: %d", cef_get_exit_code());
-    MessageBoxW(g.main_hwnd, L"Chromium Embedded Framework failed to initialize.\nAnother Freedom Browser instance may already be using this profile.",
+    MessageBoxW(g.main_hwnd, L"Chromium Embedded Framework failed to initialize.\nAnother Lumo Browser instance may already be using this profile.",
                 FREEDOM_APP_NAME, MB_ICONERROR);
     return 1;
   }
@@ -341,7 +341,7 @@ static void detect_module(void) {
 }
 
 #ifdef FREEDOM_BOOTSTRAP
-/* Entry point called by CEF's bootstrap.exe (renamed FreedomBrowser.exe), which enables the
+/* Entry point called by CEF's bootstrap.exe (renamed LumoBrowser.exe), which enables the
  * Chromium sandbox for all sub-processes and passes |sandbox_info|. */
 __declspec(dllexport) int RunWinMain(HINSTANCE hInstance, LPWSTR lpCmdLine, int nCmdShow, void* sandbox_info, cef_version_info_t* version_info) {
   (void)lpCmdLine;

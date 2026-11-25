@@ -249,13 +249,13 @@ class MainActivity : ComponentActivity(), PageActions {
     }
 
     override fun copy(text: String) {
-        getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Freedom", text))
+        getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Lumo", text))
         if (Build.VERSION.SDK_INT < 33) Toast.makeText(this, R.string.copied, Toast.LENGTH_SHORT).show()
     }
 
     override fun print(tabId: Long, title: String) {
         val wv = manager.view(tabId) ?: return
-        val job = title.ifBlank { "Freedom" }
+        val job = title.ifBlank { "Lumo" }
         getSystemService(PrintManager::class.java).print(job, wv.createPrintDocumentAdapter(job), PrintAttributes.Builder().build())
     }
 
@@ -266,11 +266,11 @@ class MainActivity : ComponentActivity(), PageActions {
         lifecycleScope.launch {
             val ok = withContext(Dispatchers.IO) {
                 runCatching {
-                    val name = "Freedom_" + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) + ".png"
+                    val name = "Lumo_" + SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date()) + ".png"
                     val values = ContentValues().apply {
                         put(MediaStore.Images.Media.DISPLAY_NAME, name)
                         put(MediaStore.Images.Media.MIME_TYPE, "image/png")
-                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Freedom")
+                        put(MediaStore.Images.Media.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Lumo")
                     }
                     val uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)!!
                     contentResolver.openOutputStream(uri)!!.use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }

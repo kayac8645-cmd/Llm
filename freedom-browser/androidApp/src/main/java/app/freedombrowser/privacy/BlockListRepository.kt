@@ -28,7 +28,7 @@ class BlockListRepository(private val context: Context, private val http: OkHttp
 
     /** Downloads a hosts/domain list from [url]; only called after an explicit user action. */
     suspend fun update(url: String): Int = withContext(Dispatchers.IO) {
-        val request = Request.Builder().url(url).header("User-Agent", "FreedomBrowser").build()
+        val request = Request.Builder().url(url).header("User-Agent", "LumoBrowser").build()
         val body = http.newCall(request).execute().use { response ->
             if (!response.isSuccessful) throw IOException("HTTP ${response.code}")
             val len = response.body.contentLength()

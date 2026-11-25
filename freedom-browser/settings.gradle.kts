@@ -27,7 +27,7 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FreedomBrowser"
+rootProject.name = "LumoBrowser"
 
 include(":shared")
 include(":androidApp")

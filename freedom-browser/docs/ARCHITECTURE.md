@@ -1,6 +1,6 @@
 # Architecture
 
-Freedom Browser is one repository with three layers:
+Lumo Browser is one repository with three layers:
 
 ```
                 ┌───────────────────── shared (Kotlin Multiplatform) ─────────────────────┐
@@ -42,8 +42,8 @@ vectors (`shared/testdata/blocklist-vectors.txt`) by both the Kotlin and the C t
 ### Process & window model
 
 ```
-FreedomBrowser.exe  (CEF bootstrap.exe, MSVC-built by the CEF project)
-  └─ loads FreedomBrowser.dll (our code, MinGW i686) → RunWinMain(sandbox_info)
+LumoBrowser.exe  (CEF bootstrap.exe, MSVC-built by the CEF project)
+  └─ loads LumoBrowser.dll (our code, MinGW i686) → RunWinMain(sandbox_info)
        ├─ main Win32 window
        │    ├─ UI browser  (freedom://ui/index.html)  – toolbar, tabs, panels, dialogs
        │    └─ content browsers (child HWNDs, one per tab, Alloy runtime style)

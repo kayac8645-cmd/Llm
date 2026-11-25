@@ -1,2 +1,2 @@
-6cf9a7b1e4b89036b857eba4c1084cecf70509bf4acacbc657af22fc96f9e039  FreedomBrowser-1.0.0-windows-x86-portable.zip
-75d59f438153ec22868fc258981bdf099bae67ce5566aeb8ff184dd467508299  FreedomBrowser-1.0.0-windows-x86-setup.exe
+f73b0b0d4dd3beaebeab4934f36c75c1f624c8b8b160bd0f2a92f93bc8d628e5  LumoBrowser-1.0.0-windows-x86-portable.zip
+e760c553c4a6a6ae7b40915a67df4329bb9a3a554b0c65116414681d68e5aa9a  LumoBrowser-1.0.0-windows-x86-setup.exe

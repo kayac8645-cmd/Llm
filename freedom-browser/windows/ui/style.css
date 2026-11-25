@@ -1,4 +1,4 @@
-/* Freedom Browser – Windows UI ("Option A": minimal, anthracite + turquoise).
+/* Lumo Browser – Windows UI ("Option A": minimal, anthracite + turquoise).
    Colour/spacing tokens are injected from the shared Kotlin DesignTokens at startup. */
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; overflow: hidden; }

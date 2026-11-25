@@ -3,7 +3,7 @@
 # This is NOT a substitute for testing on real 32-bit Windows 10; it exercises the same binaries
 # through Wine's WoW64 layer with a virtual X display.
 # Requirements: wine (>= 9, with 32-bit support), Xvfb, xdotool, ImageMagick (import), python3.
-# Usage: windows/tests/e2e/run-wine-e2e.sh <staged FreedomBrowser dir> <output dir> [extra browser flags...]
+# Usage: windows/tests/e2e/run-wine-e2e.sh <staged LumoBrowser dir> <output dir> [extra browser flags...]
 set -uo pipefail
 APP="$(realpath "$1")"; OUT="$(realpath -m "$2")"; shift 2
 HERE="$(cd "$(dirname "$0")" && pwd)"
@@ -16,7 +16,7 @@ python3 "$HERE/server.py" > "$OUT/server.log" 2>&1 & SERVER=$!
 WINE="${WINE:-wine}"
 DL="$(winepath -u 'C:\users\'"$USER"'\Downloads' 2>/dev/null || echo "$WINEPREFIX/drive_c/users/$USER/Downloads")"
 mkdir -p "$DL"; rm -f "$DL"/report*.txt "$DL"/setup*.exe
-(cd "$WORK/app" && timeout 600 "$WINE" FreedomBrowser.exe --disable-gpu "$@" > "$OUT/browser.log" 2>&1) & BROWSER=$!
+(cd "$WORK/app" && timeout 600 "$WINE" LumoBrowser.exe --disable-gpu "$@" > "$OUT/browser.log" 2>&1) & BROWSER=$!
 sleep 30
 addr() { xdotool mousemove 600 90 click 1; sleep 0.7; xdotool key ctrl+a; xdotool type --delay 40 "$1"; xdotool key Return; }
 shot() { import -window root "$OUT/$1.png"; echo "screenshot $1"; }

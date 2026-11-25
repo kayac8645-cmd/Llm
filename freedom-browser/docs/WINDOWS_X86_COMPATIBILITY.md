@@ -31,9 +31,9 @@ JavaScript and executed by the UI. The native host (~3,200 lines of C) contains 
    published `.sha1`.
 2. **Binary architecture** – `scripts/build-windows.sh` runs `file` and `i686-w64-mingw32-objdump -f` on every PE file
    and fails the build on anything that is not `PE32` + `i386`. Report: `dist/windows-x86-verification.txt`
-   (8/8 files OK: FreedomBrowser.exe, FreedomBrowser.dll, freedom-compat.exe, libcef.dll, chrome_elf.dll,
+   (8/8 files OK: LumoBrowser.exe, LumoBrowser.dll, freedom-compat.exe, libcef.dll, chrome_elf.dll,
    d3dcompiler_47.dll, vk_swiftshader.dll, vulkan-1.dll). The installer EXE is a 32-bit NSIS stub.
-3. **Dependencies** – `FreedomBrowser.dll` imports only Windows system DLLs (`KERNEL32, USER32, GDI32, ADVAPI32,
+3. **Dependencies** – `LumoBrowser.dll` imports only Windows system DLLs (`KERNEL32, USER32, GDI32, ADVAPI32,
    SHELL32, OLE32, COMDLG32, msvcrt`) and `libcef.dll`; no MinGW runtime DLLs are required (static libgcc/libssp).
    Linker flags enable ASLR (`--dynamicbase`), DEP (`--nxcompat`) and large-address awareness.
 4. **Execution** – the staged x86 binaries were run under **Wine 11.0** (WoW64, Xvfb) with an automated
@@ -55,8 +55,8 @@ JavaScript and executed by the UI. The native host (~3,200 lines of C) contains 
 ## Acceptance checklist for a real 32-bit Windows 10 PC
 
 1. `systeminfo | findstr /C:"System Type"` → `X86-based PC`.
-2. Unzip the portable package, run `FreedomBrowser.exe` (policy permitting) → start page appears.
-3. Task Manager → Details → *Platform* column shows **32-bit** for all `FreedomBrowser.exe` processes; Chromium's
+2. Unzip the portable package, run `LumoBrowser.exe` (policy permitting) → start page appears.
+3. Task Manager → Details → *Platform* column shows **32-bit** for all `LumoBrowser.exe` processes; Chromium's
    `chrome://sandbox` is not exposed, but `freedom.log` contains `sandbox=on`.
 4. Open a site, a second tab, a private tab, download a file, bookmark, check history (private site absent).
 5. Run the installer without admin rights, launch from the Start menu, uninstall from *Apps & features*.

@@ -57,7 +57,7 @@ object PageErrors {
      */
     fun details(kind: PageErrorKind, code: Int, description: String, url: String, platform: String, appVersion: String): String =
         buildString {
-            appendLine("Freedom Browser $appVersion ($platform)")
+            appendLine("Lumo Browser $appVersion ($platform)")
             appendLine("Error: ${kind.id} (code $code)")
             if (description.isNotBlank()) appendLine("Engine message: ${description.take(200)}")
             append("URL: ").append(DisplayUrl.redact(url))

@@ -26,8 +26,8 @@ byte offset (a resume would have corrupted the file), and history recording depe
 | Artifact | Result |
 |---|---|
 | `androidApp-debug.apk` | built (71.5 MB, debug-signed, `apksigner verify` OK) |
-| `androidApp-release` | built with R8 (3.7 MB); delivered as `FreedomBrowser-1.0.0-release.apk`, signed with a sideload test key |
-| `FreedomBrowser.dll` / `freedom-compat.exe` | built with `i686-w64-mingw32-gcc`, warnings-free with `-Wall -Wextra` |
+| `androidApp-release` | built with R8 (3.7 MB); delivered as `LumoBrowser-1.0.0-release.apk`, signed with a sideload test key |
+| `LumoBrowser.dll` / `freedom-compat.exe` | built with `i686-w64-mingw32-gcc`, warnings-free with `-Wall -Wextra` |
 | Windows portable ZIP / NSIS installer | built; SHA-256 in `docs/build-logs/SHA256SUMS-windows.txt` |
 | x86 verification | **8 / 8 PE files are PE32 / i386**; DLL imports only system DLLs + `libcef.dll`; exports `RunWinMain` (`docs/build-logs/windows-x86-verification.txt`) |
 
@@ -35,7 +35,7 @@ byte offset (a resume would have corrupted the file), and history recording depe
 
 | Check | Observed |
 |---|---|
-| Sandboxed start (`FreedomBrowser.exe` → CEF bootstrap → our DLL) | ✅ UI shown, `freedom.log`: `sandbox=on` |
+| Sandboxed start (`LumoBrowser.exe` → CEF bootstrap → our DLL) | ✅ UI shown, `freedom.log`: `sandbox=on` |
 | Real HTTPS website (`example.com`) | ✅ loaded, lock icon, title, history entry |
 | Ad/tracker blocking | ✅ 2 of 2 tracker requests blocked, shield counter = 2 |
 | Bookmark (Ctrl+D) persisted | ✅ `bookmarks.json` |
@@ -46,7 +46,7 @@ byte offset (a resume would have corrupted the file), and history recording depe
 | Downloads / history panels, menu, site-info dialog, settings | ✅ screenshots |
 | Pop-up without user gesture | ✅ blocked (target page never requested) |
 | Close tab + Ctrl+Shift+T | ✅ reopened |
-| Installer `/S` → files, Start-menu shortcuts, uninstall key | ✅; installed edition stores data in `%LOCALAPPDATA%\FreedomBrowser` |
+| Installer `/S` → files, Start-menu shortcuts, uninstall key | ✅; installed edition stores data in `%LOCALAPPDATA%\LumoBrowser` |
 | Launch installed app | ✅ (`sandbox=on`) |
 | Uninstaller `/S` | ✅ program folder and registry key removed (user data kept unless chosen) |
 

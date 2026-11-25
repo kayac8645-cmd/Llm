@@ -27,7 +27,7 @@ object Diagnostics {
             if (url != null) append(' ').append(DisplayUrl.redact(url))
             if (detail != null) append(' ').append(detail.take(200))
         }
-        Log.i("Freedom", line)
+        Log.i("Lumo", line)
         if (!enabled) return
         val f = file ?: return
         runCatching {

@@ -19,12 +19,12 @@ BEGIN
   BEGIN
     BLOCK "040904b0"
     BEGIN
-      VALUE "CompanyName", "Freedom Browser project"
-      VALUE "FileDescription", "Freedom Browser (Windows x86)"
+      VALUE "CompanyName", "Lumo Browser project"
+      VALUE "FileDescription", "Lumo Browser (Windows x86)"
       VALUE "FileVersion", "1.0.0"
-      VALUE "InternalName", "FreedomBrowser"
+      VALUE "InternalName", "LumoBrowser"
       VALUE "LegalCopyright", "MIT License. Chromium/CEF: BSD-style licenses."
-      VALUE "ProductName", "Freedom Browser"
+      VALUE "ProductName", "Lumo Browser"
       VALUE "ProductVersion", "1.0.0"
     END
   END

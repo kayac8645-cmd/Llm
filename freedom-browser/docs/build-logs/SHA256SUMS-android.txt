@@ -1,2 +1,1 @@
-497ed429017c76edebafeea19630994f1719da5fcb9d8183c42251f5c8e02d61  FreedomBrowser-1.0.0-debug.apk
-4e42791e92618ff6ccb8775a1bbfe7cfaef19fafec7552ff2f27f843c20ba415  FreedomBrowser-1.0.0-release.apk
+770632b88bf3dca280969a0f0e19a6a2b3bbd3a4432f3f447dba03e790b12530  LumoBrowser-1.0.0-release.apk

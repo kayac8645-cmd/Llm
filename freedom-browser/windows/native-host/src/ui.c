@@ -60,7 +60,7 @@ static int CEF_CALLBACK ui_on_before_browse(cef_request_handler_t* self, cef_bro
   (void)self; (void)user_gesture; (void)is_redirect;
   char* url = csu_to_utf8_free(request->get_url(request));
   int is_main = frame->is_main(frame);
-  /* The UI browser may only show Freedom's own UI (blocks drag & drop navigation, link clicks...). */
+  /* The UI browser may only show Lumo's own UI (blocks drag & drop navigation, link clicks...). */
   int cancel = is_main && !str_starts_with(url, "freedom://ui/");
   free(url);
   CEF_RELEASE(browser);
@@ -655,7 +655,7 @@ static cef_resource_handler_t* CEF_CALLBACK factory_create(cef_scheme_handler_fa
                                                           const cef_string_t* scheme, cef_request_t* request) {
   (void)self; (void)scheme;
   int allowed = 0;
-  /* Only Freedom's own UI browser may load freedom:// resources or call the IPC endpoint. */
+  /* Only Lumo's own UI browser may load freedom:// resources or call the IPC endpoint. */
   if (browser) {
     cef_browser_host_t* host = browser->get_host(browser);
     cef_client_t* client = host ? host->get_client(host) : NULL;

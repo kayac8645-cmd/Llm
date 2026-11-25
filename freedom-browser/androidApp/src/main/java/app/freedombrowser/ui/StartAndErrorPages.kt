@@ -65,7 +65,7 @@ fun StartPage(isPrivate: Boolean, onSubmit: (String) -> Unit, onOpen: (Screen) -
         Spacer(Modifier.height(72.dp))
         if (isPrivate) Icon(Icons.Filled.VisibilityOff, null, tint = colors.private, modifier = Modifier.size(40.dp))
         else androidx.compose.foundation.Image(
-            androidx.compose.ui.res.painterResource(R.drawable.ic_launcher_foreground), contentDescription = null, modifier = Modifier.size(72.dp),
+            androidx.compose.ui.res.painterResource(R.drawable.lumo_mark), contentDescription = null, modifier = Modifier.size(64.dp),
         )
         Text(
             stringResource(if (isPrivate) R.string.private_title else R.string.app_name),

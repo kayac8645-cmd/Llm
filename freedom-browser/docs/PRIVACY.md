@@ -1,4 +1,4 @@
-# Privacy policy – Freedom Browser 1.0
+# Privacy policy – Lumo Browser 1.0
 
 **Short version:** no analytics, no telemetry, no accounts. Your browsing data stays on your device.
 
@@ -6,7 +6,7 @@
 
 | Data | Android | Windows |
 |---|---|---|
-| History, bookmarks, open tabs, download list, site settings, preferences | app-private storage (Room / DataStore) | profile folder (`profile\` in portable mode, `%LOCALAPPDATA%\FreedomBrowser\User Data` when installed) |
+| History, bookmarks, open tabs, download list, site settings, preferences | app-private storage (Room / DataStore) | profile folder (`profile\` in portable mode, `%LOCALAPPDATA%\LumoBrowser\User Data` when installed) |
 | Cookies, cache, site storage | Android System WebView profile | Chromium profile |
 | Optional AI API key | encrypted with an Android Keystore key | — |
 | Diagnostic log | opt-in, URLs reduced to scheme/host/path, no page content | `freedom.log`: start/stop and errors, no URLs |
@@ -38,7 +38,7 @@ Android cloud backup and device-to-device transfer are disabled for all app data
 
 ## Network
 
-Freedom uses the device's ordinary connection. It contains no VPN, proxy, tunnelling or traffic-disguise features and
+Lumo uses the device's ordinary connection. It contains no VPN, proxy, tunnelling or traffic-disguise features and
 cannot bypass network-administrator, school (e.g. MEB) or website restrictions.
 
 ## Contact / changes

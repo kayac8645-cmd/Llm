@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "app.freedombrowser"
+        applicationId = "app.lumobrowser"
         minSdk = 29
         targetSdk = 36
         versionCode = 1

@@ -1,5 +1,5 @@
 # Format: one domain per line; a domain also blocks its subdomains.
-# Licensed with Freedom Browser (MIT). Users can add a maintained list in Settings > Ad & tracker blocking.
+# Licensed with Lumo Browser (MIT). Users can add a maintained list in Settings > Ad & tracker blocking.
 doubleclick.net
 googlesyndication.com
 googleadservices.com

@@ -1,8 +1,8 @@
 /*
- * Freedom Browser - Windows x86 native host (CEF C API).
+ * Lumo Browser - Windows x86 native host (CEF C API).
  *
  * Architecture: one top-level Win32 window hosts
- *   - the UI browser: Freedom's own HTML/CSS/JS interface served from freedom://ui/
+ *   - the UI browser: Lumo's own HTML/CSS/JS interface served from freedom://ui/
  *     (toolbar, tabs, panels) which talks to this host through freedom://ipc/
  *   - one content browser (child HWND) per open tab.
  * Only the UI browser can reach freedom:// URLs; websites never get a bridge.
@@ -48,7 +48,7 @@
 #include "include/capi/cef_values_capi.h"
 
 #define FREEDOM_VERSION "1.0.0"
-#define FREEDOM_APP_NAME L"Freedom Browser"
+#define FREEDOM_APP_NAME L"Lumo Browser"
 
 /* ---------------------------------------------------------------- util.c */
 
