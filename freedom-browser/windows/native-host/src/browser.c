@@ -187,6 +187,7 @@ static void CEF_CALLBACK on_address_change(cef_display_handler_t* self, cef_brow
     char* u = cs_to_utf8(url);
     page_host_set(t, u);
     t->blocked = 0;
+    t->blocked_sent = 0;
     emit_tab_str("url", t->id, "url", u);
     free(u);
   }
@@ -340,12 +341,30 @@ static void CEF_CALLBACK on_load_error(cef_load_handler_t* self, cef_browser_t* 
 typedef struct { cef_resource_request_handler_t h; } rrh_t;
 static rrh_t* g_rrh;
 
+/* Blocked-request counters are sent to the UI at most every 400 ms (ad-heavy pages block dozens of
+ * requests per second; one UI update per request made the whole window sluggish). */
+static int g_blocked_flush_pending;
+
+static void blocked_flush_task(void* arg) {
+  (void)arg;
+  g_blocked_flush_pending = 0;
+  for (tab* t = g.tabs; t; t = t->next) {
+    if (t->blocked != t->blocked_sent) {
+      t->blocked_sent = t->blocked;
+      ui_emitf("{\"type\":\"blocked\",\"id\":%d,\"count\":%d}", t->id, t->blocked);
+    }
+  }
+}
+
 static void blocked_task(void* arg) {
   int id = (int)(intptr_t)arg;
   tab* t = tab_find(id);
   if (!t) return;
   t->blocked++;
-  ui_emitf("{\"type\":\"blocked\",\"id\":%d,\"count\":%d}", id, t->blocked);
+  if (!g_blocked_flush_pending) {
+    g_blocked_flush_pending = 1;
+    post_task_on(TID_UI, blocked_flush_task, NULL, 400);
+  }
 }
 
 /* Runs on the IO thread. */
@@ -613,6 +632,29 @@ static void CEF_CALLBACK on_after_created(cef_life_span_handler_t* self, cef_bro
     layout_browsers();
   }
   CEF_RELEASE(browser);
+}
+
+/* A tab is a child window of the main window. CEF's default close notification is WM_CLOSE to the
+ * top-level window, which would be read as "close the whole app". While the app is running, close
+ * just the tab's own window instead; during app shutdown keep the default (main window is destroyed). */
+static void destroy_window_task(void* arg) {
+  if (IsWindow((HWND)arg)) DestroyWindow((HWND)arg);
+}
+
+static int CEF_CALLBACK on_do_close(cef_life_span_handler_t* self, cef_browser_t* browser) {
+  (void)self;
+  int handled = 0;
+  if (!g.closing) {
+    cef_browser_host_t* host = browser->get_host(browser);
+    HWND hwnd = host->get_window_handle(host);
+    CEF_RELEASE(host);
+    if (hwnd) {
+      post_ui_task(destroy_window_task, (void*)hwnd); /* destroying the window triggers on_before_close */
+      handled = 1;
+    }
+  }
+  CEF_RELEASE(browser);
+  return handled;
 }
 
 static void CEF_CALLBACK on_before_close(cef_life_span_handler_t* self, cef_browser_t* browser) {
@@ -1206,6 +1248,7 @@ cef_client_t* content_client(void) {
   c->lsh->h.on_before_popup_aborted = on_before_popup_aborted;
   c->lsh->h.on_after_created = on_after_created;
   c->lsh->h.on_before_close = on_before_close;
+  c->lsh->h.do_close = on_do_close;
   c->dl = FR_NEW(dlh_t, cef_download_handler_t, NULL);
   c->dl->h.can_download = can_download;
   c->dl->h.on_before_download = on_before_download;
@@ -1451,6 +1494,8 @@ static void capture(int tab_id, int snapshot) {
   if (snapshot) {
     cs_set(&k, "quality");
     params->set_int(params, &k, 60);
+    cs_set(&k, "optimizeForSpeed"); /* faster encoder: menus open sooner */
+    params->set_bool(params, &k, 1);
   }
   cs_set(&method, "Page.captureScreenshot");
   host->execute_dev_tools_method(host, s->message_id, &method, params);

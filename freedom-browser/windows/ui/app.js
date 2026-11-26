@@ -46,10 +46,21 @@ const storage = {
     try { return JSON.parse(r.value); } catch { return fallback; }
   },
   timers: {},
+  pending: {},
   set(key, value, delay = 400) {
     clearTimeout(this.timers[key]);
-    this.timers[key] = setTimeout(() => ipc('storage.set', { key, value: JSON.stringify(value) }), delay);
+    this.pending[key] = value;
+    this.timers[key] = setTimeout(() => this.write(key), delay);
   },
+  write(key) {
+    clearTimeout(this.timers[key]);
+    const value = this.pending[key];
+    delete this.pending[key];
+    delete this.timers[key];
+    return ipc('storage.set', { key, value: JSON.stringify(value) });
+  },
+  // Writes every debounced value now (used before the window closes).
+  flush() { return Promise.all(Object.keys(this.pending).map(k => this.write(k))); },
 };
 
 // ----------------------------------------------------------------------------------------- state
@@ -371,9 +382,10 @@ window.freedom = {
         break;
       case 'window': S.win = { maximized: e.maximized, fullscreen: e.fullscreen }; break;
       case 'snapshot': snapWaiter?.(e.data); return;
+      case 'beforeClose': saveSession(); storage.flush().finally(() => ipc('window.close')); return;
       case 'searchText': openTab({ url: core.searchUrl(S.settings.engine, e.text), priv: e.private, after: e.openerId }); break;
     }
-    render();
+    renderSoon();
   },
 };
 
@@ -560,7 +572,15 @@ function wantsFullUi() {
   const t = cur();
   return !!(S.panel || S.menu || S.dialog || S.suggest || !t || t.error || !t.hasBrowser || (!t.url && !t.loading));
 }
+// Native events (progress, favicons, downloads, blocked counters…) arrive in bursts: draw once per frame.
+let renderQueued = false;
+function renderSoon() {
+  if (renderQueued) return;
+  renderQueued = true;
+  requestAnimationFrame(() => { if (renderQueued) render(); });
+}
 function render() {
+  renderQueued = false;
   renderTabs();
   renderNav();
   renderBookmarksBar();
@@ -582,10 +602,11 @@ function render() {
 let lastTitle = '';
 function ipcTitle(title) { if (title !== lastTitle) { lastTitle = title; ipc('title', { title }); } }
 
+let lastMaximized = null;
 function renderTabs() {
   const strip = $('#tabstrip');
   if (tabDrag?.active) return; // DOM is being reordered by the drag handler
-  strip.innerHTML = S.tabs.map(t => {
+  const html = S.tabs.map(t => {
     const fav = t.loading && t.hasBrowser ? '<span class="spin"></span>'
       : t.favicon ? `<img class="fav" src="${esc(t.favicon)}" alt="">`
       : svg(t.private ? 'eye' : 'globe', 'style="width:16px;height:16px"');
@@ -594,9 +615,13 @@ function renderTabs() {
       <span class="fav-wrap">${fav}</span><span class="title">${esc(title)}</span>
       <button class="close" data-close="${t.id}" title="${esc(T.closeTab)} (Ctrl+W)">${svg('x', 'style="width:12px;height:12px"')}</button></div>`;
   }).join('') + `<button id="newtab" title="${esc(T.newTab)} (Ctrl+T)">${svg('x', 'style="transform:rotate(45deg)"')}</button>`;
-  const max = $('#wcMaxIcon');
-  max.innerHTML = S.win.maximized ? '<rect x="1" y="3" width="6" height="6"/><path d="M3 3V1h6v6H7"/>' : '<rect x="1" y="1" width="8" height="8"/>';
-  $('#wcMax').dataset.tip = S.win.maximized ? 'restore' : 'maximize';
+  if (strip.dataset.html !== html) { strip.innerHTML = html; strip.dataset.html = html; }
+  if (S.win.maximized !== lastMaximized) {
+    lastMaximized = S.win.maximized;
+    $('#wcMaxIcon').innerHTML = S.win.maximized ? '<rect x="1" y="3" width="6" height="6"/><path d="M3 3V1h6v6H7"/>' : '<rect x="1" y="1" width="8" height="8"/>';
+    $('#wcMax').dataset.tip = S.win.maximized ? 'restore' : 'maximize';
+    lastTips = null;
+  }
 }
 
 // ---------------------------------------------------------------- tab drag & drop reordering
@@ -634,7 +659,7 @@ document.addEventListener('pointermove', e => {
   }
 });
 document.addEventListener('pointerup', () => {
-  if (tabDrag?.active) { tabDrag = null; renderTabs(); saveSession(); } else tabDrag = null;
+  if (tabDrag?.active) { tabDrag = null; $('#tabstrip').dataset.html = ''; renderTabs(); saveSession(); } else tabDrag = null;
 });
 
 // ---------------------------------------------------------------- bookmarks bar
@@ -720,6 +745,7 @@ async function openDialog(dialog) {
   render();
 }
 
+let lastTips = null;
 function renderNav() {
   const t = cur();
   $('#back').disabled = !t || (!t.canBack && !t.url && !t.error);
@@ -744,7 +770,7 @@ function renderNav() {
   const zb = $('#zoomBadge');
   zb.textContent = t && t.zoom !== 100 ? t.zoom + '%' : '';
   zb.classList.toggle('hidden', !t || t.zoom === 100);
-  for (const el of document.querySelectorAll('[data-tip]')) el.title = T[el.dataset.tip] || '';
+  if (lastTips !== T) { lastTips = T; for (const el of document.querySelectorAll('[data-tip]')) el.title = T[el.dataset.tip] || ''; }
 }
 
 function renderBars() {
@@ -797,6 +823,7 @@ function flatVisits(limit = 3000) {
 }
 function flatBookmarks() { return S.bookmarks.filter(b => b.url).flatMap(b => [b.title, b.url]); }
 
+let topCache = { key: null, at: 0, top: [] };
 function renderStart(t) {
   const priv = t?.private;
   const tile = (attrs, url, title, extra) => `<div class="tile" ${attrs}><div class="ico"><span class="letter">${esc(letterOf(url, title))}</span></div><span class="label">${esc(title)}</span>${extra}</div>`;
@@ -808,7 +835,10 @@ function renderStart(t) {
     tiles += `<div class="tiles">${sc}${add}</div>`;
     if (S.settings.showTopSites) {
       const exclude = [...S.hiddenSites, ...S.shortcuts.map(x => core.siteKey(x.url))];
-      const top = core.topSites(flatVisits(), core.now(), 8, exclude);
+      const last = S.history[S.history.length - 1];
+      const topKey = `${S.history.length}|${last?.t}|${last?.title}|${exclude.join(',')}`;
+      if (topCache.key !== topKey || core.now() - topCache.at > 60000) topCache = { key: topKey, at: core.now(), top: core.topSites(flatVisits(), core.now(), 8, exclude) };
+      const top = topCache.top;
       if (top.length) tiles += `<div class="tiles-title">${esc(T.recentSites)}</div><div class="tiles">${top.map(([url, title, host]) =>
         tile(`data-open="${esc(url)}" title="${esc(url)}"`, url, title || host, `<button class="x" data-hide="${esc(host)}" title="${esc(T.hideSite)}">✕</button>`)).join('')}</div>`;
     }

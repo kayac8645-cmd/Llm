@@ -46,7 +46,7 @@ static int CEF_CALLBACK ui_on_before_popup(cef_life_span_handler_t* self, cef_br
 
 static void CEF_CALLBACK ui_on_before_close(cef_life_span_handler_t* self, cef_browser_t* browser) {
   (void)self;
-  if (g.ui_browser && browser->is_same(browser, g.ui_browser)) {
+  if (g.ui_browser && browser->get_identifier(browser) == g.ui_browser_id) {
     CEF_RELEASE(g.ui_browser);
     g.ui_browser = NULL;
     g.browser_count--;
@@ -215,6 +215,16 @@ static wchar_t* storage_path(const char* key, const wchar_t* ext) {
   return p;
 }
 
+typedef struct { wchar_t* path; char* value; } storage_write;
+
+static void storage_write_task(void* arg) {
+  storage_write* w = (storage_write*)arg;
+  if (!file_write_atomic(w->path, w->value, strlen(w->value))) flog("storage write failed");
+  free(w->path);
+  free(w->value);
+  free(w);
+}
+
 static char** list_to_strings(cef_list_value_t* list, int* count) {
   *count = 0;
   if (!list) return NULL;
@@ -363,9 +373,15 @@ static char* run_command(const char* body) {
     char* value = dict_str(d, "value");
     int ok = 0;
     if (valid_storage_key(key) && value) {
-      wchar_t* p = storage_path(key, L".json");
-      ok = file_write_atomic(p, value, strlen(value));
-      free(p);
+      /* Written on CEF's file thread: a flushed write of a large history file no longer blocks the
+       * UI thread (tasks on one thread run in order, so writes to a key never reorder). */
+      storage_write* w = (storage_write*)malloc(sizeof *w);
+      w->path = storage_path(key, L".json");
+      w->value = value;
+      value = NULL;
+      if (g.close_requested) storage_write_task(w); /* closing: write now, before shutdown */
+      else post_task_on(TID_FILE_USER_BLOCKING, storage_write_task, w, 0);
+      ok = 1;
     }
     sb_printf(&out, "{\"ok\":%s}", ok ? "true" : "false");
     free(key);

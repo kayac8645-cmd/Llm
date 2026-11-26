@@ -186,9 +186,34 @@ void window_begin_drag(void) {
   PostMessageW(g.main_hwnd, WM_NCLBUTTONDOWN, HTCAPTION, MAKELPARAM(pt.x, pt.y));
 }
 
+static int g_quit_requested;
+
+static void quit_loop_once(void) {
+  if (g_quit_requested) return;
+  g_quit_requested = 1;
+  cef_quit_message_loop();
+}
+
+/* Safety net: never leave a hidden, unclosable process behind if a browser does not report back. */
+static void CALLBACK force_quit_proc(HWND hwnd, UINT msg, UINT_PTR id, DWORD time) {
+  (void)hwnd; (void)msg; (void)time;
+  KillTimer(NULL, id);
+  if (!g_quit_requested) flog("close timeout: %d browser(s) still open, quitting", g.browser_count);
+  quit_loop_once();
+}
+
+static void CALLBACK close_now_proc(HWND hwnd, UINT msg, UINT_PTR id, DWORD time) {
+  (void)hwnd; (void)msg; (void)time;
+  KillTimer(NULL, id);
+  if (!g.closing) {
+    flog("UI did not confirm close in time");
+    PostMessageW(g.main_hwnd, WM_CLOSE, 0, 0);
+  }
+}
+
 void maybe_quit(void) {
   if (g.closing && g.browser_count <= 0) {
-    cef_quit_message_loop();
+    quit_loop_once();
   }
 }
 
@@ -251,6 +276,17 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     }
     case WM_CLOSE:
       if (!g.closing) {
+        ShowWindow(hwnd, SW_HIDE); /* instant feedback */
+        if (g.ui_browser && !g.close_requested) {
+          /* Let the UI write its pending (debounced) data first; it answers with window.close.
+           * If it does not answer in time, close anyway. */
+          g.close_requested = 1;
+          ui_emit("{\"type\":\"beforeClose\"}");
+          SetTimer(NULL, 0, 1500, close_now_proc);
+          return 0;
+        }
+        /* Ask every browser to close and arm a safety timer. CEF answers each close request by
+         * sending WM_CLOSE back to this top-level window (handled below). */
         g.closing = 1;
         tabs_close_all();
         if (g.ui_browser) {
@@ -258,9 +294,14 @@ static LRESULT CALLBACK wnd_proc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
           host->close_browser(host, 1);
           CEF_RELEASE(host);
         }
+        SetTimer(NULL, 0, 5000, force_quit_proc);
         maybe_quit();
+        return 0;
       }
-      return 0;
+      /* CEF's close notification: let the window be destroyed; that destroys the browser child
+       * windows, which triggers on_before_close for each browser and finally quits the loop. */
+      g.main_destroyed = 1;
+      break;
     case WM_DESTROY:
       return 0;
   }
@@ -389,7 +430,7 @@ static int run(HINSTANCE inst, int show, void* sandbox_info) {
   cef_run_message_loop();
   if (g.private_context) CEF_RELEASE(g.private_context);
   cef_shutdown();
-  DestroyWindow(g.main_hwnd);
+  if (!g.main_destroyed) DestroyWindow(g.main_hwnd);
   app->base.release(&app->base);
   flog("exit");
   return 0;

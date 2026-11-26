@@ -47,7 +47,7 @@
 #include "include/capi/cef_task_capi.h"
 #include "include/capi/cef_values_capi.h"
 
-#define FREEDOM_VERSION "1.1.0"
+#define FREEDOM_VERSION "1.1.1"
 #define FREEDOM_APP_NAME L"Lumo Browser"
 
 /* ---------------------------------------------------------------- util.c */
@@ -102,6 +102,8 @@ void flog(const char* fmt, ...); /* local diagnostic log; never pass URLs or pag
 
 /* Posts fn(arg) to the CEF UI thread. */
 void post_ui_task(void (*fn)(void* arg), void* arg);
+/* Posts |fn| to a CEF thread (cef_thread_id_t), optionally delayed. */
+void post_task_on(int thread_id, void (*fn)(void* arg), void* arg, int delay_ms);
 
 #include "blocklist.h"
 
@@ -113,6 +115,7 @@ typedef struct tab {
   HWND hwnd;
   char* page_host;          /* guarded by g.lock (read on IO thread) */
   int blocked;
+  int blocked_sent; /* last count sent to the UI */
   struct tab* next;
 } tab;
 
@@ -146,7 +149,9 @@ typedef struct {
   int block_popups;
   char** popup_allow; int popup_allow_count;
   int ask_download;
-  int hide_ddg_header;   /* UI thread only */
+  int hide_ddg_header;
+  int close_requested;  /* UI asked to flush before closing */
+  int main_destroyed;   /* UI thread only */
   char* ddg_script;      /* cosmetic DuckDuckGo tweak from the shared module; UI thread only */
   cef_dictionary_value_t* site_permissions; /* site -> {camera:"allow"...} */
   /* saved window placement for HTML fullscreen */

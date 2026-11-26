@@ -92,4 +92,13 @@ atomic read-modify-write inside the DataStore transaction).
 | Lumo Windows x86 under Wine on live `duckduckgo.com/?q=GitHub` | logo and menu hidden; search box, tabs and results visible |
 | Android on a real device | not verified (no device); uses `addDocumentStartJavaScript`, fallback `evaluateJavascript` on page finish |
 
+### Windows 1.1.1 fixes
+
+| Defect | Cause | Fix | Verified (Wine 11, x86 build) |
+|---|---|---|---|
+| App did not exit: window stayed open, processes kept running | UI-browser close detection used `is_same()`, which consumes a reference and did not match, so the open-browser count never reached 0; CEF's close notification (WM_CLOSE to the main window) was ignored, so browser windows were never destroyed | compare browser ids; let the main window be destroyed on CEF's notification; hide the window at once; 5 s safety quit | ✕ button and Alt+F4 with 3 tabs (1 private): all Lumo processes gone in 1–2 s |
+| Data written in the last 0.4–1.5 s before closing was lost | debounced UI writes never ran | `beforeClose` event: UI flushes pending writes, then closes (1.5 s timeout); writes during close are synchronous | history/session present after close |
+| Closing one tab could start closing the app | default CEF close notification targets the top-level window | `do_close` destroys only the tab's own window while the app runs | Ctrl+W then Ctrl+Shift+T in full E2E run |
+| Sluggish UI on busy pages | every native event (progress, each blocked request, downloads) re-rendered the whole UI; history file written with a flush on the UI thread | renders coalesced to one per frame; tab strip rebuilt only when changed; top sites cached; blocked counters batched (400 ms); storage writes on CEF's file thread | full E2E run (19 screenshots) passes; menu open incl. page snapshot ≈ 65 ms |
+
 Open items are unchanged: no physical Android device and no real 32-bit Windows 10 PC were available.

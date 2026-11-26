@@ -291,10 +291,14 @@ static void CEF_CALLBACK fn_task_execute(cef_task_t* self) {
   t->fn(t->arg);
 }
 
-void post_ui_task(void (*fn)(void* arg), void* arg) {
+void post_task_on(int thread_id, void (*fn)(void* arg), void* arg, int delay_ms) {
   fn_task* t = FR_NEW(fn_task, cef_task_t, NULL);
   t->task.execute = fn_task_execute;
   t->fn = fn;
   t->arg = arg;
-  cef_post_task(TID_UI, &t->task); /* ownership of our reference passes to CEF */
+  /* ownership of our reference passes to CEF */
+  if (delay_ms > 0) cef_post_delayed_task((cef_thread_id_t)thread_id, &t->task, delay_ms);
+  else cef_post_task((cef_thread_id_t)thread_id, &t->task);
 }
+
+void post_ui_task(void (*fn)(void* arg), void* arg) { post_task_on(TID_UI, fn, arg, 0); }
